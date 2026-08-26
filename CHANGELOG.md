@@ -9,7 +9,11 @@
 ### 变更(公开版脱敏准备,T01)
 
 - `backend/core/rag/llm.py:410` few-shot 示例中的真实业务名 → 虚构名「示例海鲜酒楼」(2026-08-25 用户决策);纯示例文本,无行为变更;tests 中无该字符串断言(已全仓 grep 确认)
-- 新增私有脱敏工具 `tmp/sanitize/sanitize_public.py`(`tmp/` 已 gitignore,不进仓):基于 `git ls-files`(含 `--others --exclude-standard`)精确文件清单 + 有序替换规则 + 目标树全量自检(内容 + 文件名),一键生成公开版目录树;显式排除已跟踪的 `客户必读.md` 与二进制打印件
+- 新增私有脱敏工具 `tmp/sanitize/sanitize_public.py`(`tmp/` 已 gitignore,不进仓):基于 `git ls-files`(含 `--others --exclude-standard`)精确文件清单 + 有序替换规则 + 目标树全量自检(内容 + 文件名),一键生成公开版目录树;显式排除已跟踪的 `客户必读.md` 与二进制打印件;重跑时保留目标树 `.git`(2026-08-26)
+
+### 变更(公开版 README 重写,T03)
+
+- `README.md` 全文重写为公开版简历导向结构:一句话定位 + mermaid 架构图(5 容器)+ 实测工程指标表(300 pytest / 13 vitest / 50 golden-QA / 36 API 端点 / 双平台)+ 设计决策摘要(便携/低依赖/降级/评测驱动/成本工程);指标数字均来自 2026-08-26 本机 grep/wc 实测;许可改为 MIT(LICENSE 文件待 T02 随公开仓一并补齐)
 
 ## [1.7.0] - 2026-07-28
 
