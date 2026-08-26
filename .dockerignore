@@ -1,0 +1,75 @@
+# KB-AI v1.4.0 · 根 .dockerignore(范本,为未来容器化预留)
+# 当前:项目无完整 Dockerfile,本文件实际生效需待 backend / frontend 容器化 PR 落地
+# 覆盖目标:把数据卷 / 虚拟环境 / 前端构建产物 / 文档 / 大文件全部排除,避免污染 build context
+
+# VCS 与元数据
+.git
+.gitignore
+.gitattributes
+.kb-ai-root
+.superpowers
+.agents
+.claude
+.pytest_cache
+.ruff_cache
+
+# 运行时数据卷(由 docker-compose volumes 挂载,不进镜像)
+data/
+vectors/
+cache/
+logs/
+tmp/
+
+# 文档(仅 README 保留,作为镜像入口说明)
+*.md
+docs/
+README.md
+!README.md
+QUICKSTART.md
+!QUICKSTART.md
+
+# 前端 / 后端虚拟环境与构建产物
+frontend/node_modules/
+frontend/dist/       # 已构建好,不需要重新打包进镜像
+backend/.venv/
+backend/__pycache__/
+backend/**/__pycache____
+
+# IMPORTANT: backend source MUST be in build context (Dockerfile COPY backend/)
+# Negate the .venv exclusion to keep src accessible to build context
+
+backend/__pycache__/
+backend/**/__pycache__/
+
+# 测试与覆盖率
+tests/.pytest_cache/
+tests/integration/.pytest_cache/
+frontend/coverage/
+frontend/.vitest/
+
+# 大文件 / 临时产物
+*.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal
+*.gz
+*.zip
+*.tar
+*.log
+!logs/.gitkeep
+
+# 环境与凭据(绝不能进镜像)
+.env
+.env.example
+.env.local
+
+# 编辑器与 IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系统文件
+Thumbs.db
+desktop.ini
+.DS_Store

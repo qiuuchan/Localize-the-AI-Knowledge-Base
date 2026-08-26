@@ -1,0 +1,280 @@
+# =====================================================================
+# KB-AI · Docker Compose 配置
+# 部署形态: 1TB 移动 SSD + Windows 10/11 + Docker Desktop
+# 容器数: 5 (dify-api / dify-worker / qdrant / dify-db-init / kb-ai-backend v1.5.0+)
+# 存储: 所有数据卷用相对路径挂载(./data, ./vectors, ./cache, ./logs, ./tmp)
+# 单模型: Qwen3.6-Plus (阿里云百炼 API, Token Plan 标准版 ¥198/月)
+# =====================================================================
+#
+# 重要: 本文件不要硬编码任何 API Key,所有密钥通过 .env 注入。
+# .env 已被 .gitignore 排除,不要 commit 实际密钥。
+#
+# v0.7.1 安全加固 (对应架构评审 Part 2 §9.1):
+#   - 端口绑定 127.0.0.1 (避免 LAN/公网裸暴露)
+#   - 容器层加 mem_limit / mem_reservation / cpus / pids_limit
+#   - 新增 dify-db-init 一次性服务,确保 SQLite 启用 WAL + synchronous=NORMAL
+#
+# v0.7.1 部署修复: 显式指定 project name,避免在 E:\(盘根)等 basename 为空
+# 的目录运行 docker compose 时报 "project name must not be empty"。
+#
+# v0.7.1 部署裁剪 (2026-07-09):
+#   MinerU (PDF/PPT/Word 解析) 服务已从 compose 移除。原因是 MinerU 的官方
+#   Docker 镜像源 (opendatalab/mineru) 在公开 Docker Hub 不存在,阿里云
+#   registry.cn-hangzhou.aliyuncs.com 的 auth endpoint 拒绝匿名 pull
+#   (返回 access:[] 的空 scope token)。docker pull 失败,影响 5 容器
+#   compose up 整体启动。
+#   影响范围: KB-AI 失去 PDF/Word/PPT/Excel 文档解析能力 (parse-doc.ps1 /
+#             embed-and-ingest.ps1 走不通)。chat.ps1 不受影响 (无文档时
+#             top-K 空 → 走 Qwen + 返回模型自由回答或"资料里没找到")。
+#   后续恢复路径: 找到可匿名 pull 的 MinerU 镜像 (或私有 registry) 后,把
+#                本文件 mineru 块 + dify-api/worker 的 mineru 依赖 + ./data
+#                ./cache ./tmp 卷挂载恢复即可。
+
+name: kb-ai
+
+services:
+  # -----------------------------------------------------------------
+  # 1. Qdrant 向量数据库 (最先启动)
+  # -----------------------------------------------------------------
+  qdrant:
+    image: qdrant/qdrant:v1.7.0
+    container_name: kb-ai-qdrant
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:6333:6333"        # HTTP API (loopback only)
+      - "127.0.0.1:6334:6334"        # gRPC (loopback only)
+    volumes:
+      - ./vectors:/qdrant/storage
+    environment:
+      QDRANT__SERVICE__GRPC_PORT: "6334"
+      QDRANT__STORAGE__STORAGE_PATH: /qdrant/storage
+      # 性能优化: U 盘 SSD 写入批量,减少 fsync 次数
+      QDRANT__STORAGE__PERFORMANCE__MAX_SEGMENT_SIZE_KB: "1024"
+      QDRANT__STORAGE__WAL__WAL_CAPACITY_MB: "32"
+      QDRANT__STORAGE__WAL__WAL_FLUSH_INTERVAL_SEC: "5"
+    healthcheck:
+      # qdrant 镜像不带 curl/wget,用 bash 的 /dev/tcp 探活(架构评审 #2 容器资源限制)
+      test: ["CMD-SHELL", "bash -c 'exec 3<>/dev/tcp/127.0.0.1/6333 && echo OK'"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    # 资源限制 (v0.7.1 加固,架构评审 §9.1 #2)
+    mem_limit: 1g
+    mem_reservation: 512m
+    cpus: "1.0"
+    pids_limit: 200
+    networks:
+      - kb-ai-net
+
+  # -----------------------------------------------------------------
+  # 2. Dify API 服务 (Web UI + API 入口,SQLite 模式)
+  #    注: MinerU 依赖已移除(v0.7.1 部署裁剪,见文件头注释)
+  # -----------------------------------------------------------------
+  dify-api:
+    image: langgenius/dify-api:1.0.0
+    container_name: kb-ai-dify-api
+    restart: unless-stopped
+    ports:
+      # v0.7.1 修复:Dify 1.0 实际听 5001(gunicorn),不是 8080;v0.7 原 compose
+      # 写 8080 但容器内没人监听,导致 healthcheck 永远 fail。
+      - "127.0.0.1:${DIFY_PORT:-8080}:5001"
+    volumes:
+      - ./data:/app/api/storage
+      - ./logs/dify-api:/app/logs
+      - ./tmp:/app/tmp
+    environment:
+      # ----- Dify 1.0 SQLite 模式 (单库,无需 Postgres) -----
+      DB_TYPE: sqlite
+      SQLITE_DATABASE_PATH: /app/api/storage/db.sqlite
+      # v0.7.1 修复:OPENDAL_FS_ROOT 缺失导致 opendal 抛 ConfigInvalid,
+      # Dify 启动失败 → gunicorn 一直重启 → healthcheck fail。
+      OPENDAL_SCHEME: fs
+      OPENDAL_FS_ROOT: /app/api/storage
+      # ----- 阿里云百炼 API (单一模型: Qwen3.6-Plus) -----
+      ALIYUN_BAILIAN_API_KEY: ${ALIYUN_BAILIAN_API_KEY}
+      MODEL_NAME: ${MODEL_NAME:-qwen3.6-plus}
+      TOKEN_PLAN_USAGE_URL: ${TOKEN_PLAN_USAGE_URL:-}
+      # ----- 部署模式标记 -----
+      DEPLOY_ENV: production
+      LOG_LEVEL: INFO
+      # ----- Token Plan 配置 (由 .env 注入) -----
+      TOKEN_PLAN_TIER: ${TOKEN_PLAN_TIER:-standard}
+    healthcheck:
+      # dify 镜像带 curl,但容器内服务听 5001(不是 8080)
+      test: ["CMD-SHELL", "curl -f http://localhost:5001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      # v0.8.11(P1.5):EAS cold start 慢,给到 120s 宽限(原 60s 不够)
+      start_period: 120s
+    # 资源限制 (v0.7.1 加固)
+    mem_limit: 2g
+    mem_reservation: 1g
+    cpus: "1.0"
+    pids_limit: 200
+    networks:
+      - kb-ai-net
+    depends_on:
+      qdrant:
+        condition: service_healthy
+
+  # -----------------------------------------------------------------
+  # 3. Dify Worker 异步任务 (文档解析/索引/向量化)
+  # -----------------------------------------------------------------
+  dify-worker:
+    image: langgenius/dify-api:1.0.0
+    container_name: kb-ai-dify-worker
+    restart: unless-stopped
+    command: ["worker"]
+    volumes:
+      - ./data:/app/api/storage
+      - ./logs/dify-worker:/app/logs
+      - ./tmp:/app/tmp
+    environment:
+      # 与 dify-api 共享 SQLite (WAL 模式由 dify-db-init 启用)
+      DB_TYPE: sqlite
+      SQLITE_DATABASE_PATH: /app/api/storage/db.sqlite
+      # v0.7.1 修复:worker 同样需要 OPENDAL 配置,否则 celery worker 启动时
+      # ext_storage.init_app 抛 ConfigInvalid,陷入 restart loop。
+      OPENDAL_SCHEME: fs
+      OPENDAL_FS_ROOT: /app/api/storage
+      ALIYUN_BAILIAN_API_KEY: ${ALIYUN_BAILIAN_API_KEY}
+      MODEL_NAME: ${MODEL_NAME:-qwen3.6-plus}
+      TOKEN_PLAN_USAGE_URL: ${TOKEN_PLAN_USAGE_URL:-}
+      DEPLOY_ENV: production
+      LOG_LEVEL: INFO
+    # Worker 进程级健康检查(Nice-to-have M1#3):
+    # depends_on service_healthy 只检查 API 容器进程在不在,
+    # 不能发现 worker 进程假死。补 pgrep dify-worker 主动探活。
+    healthcheck:
+      test: ["CMD-SHELL", "ps aux | grep -E 'dify.*worker|celery.*worker' | grep -v grep | head -1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      # v0.8.11(P1.5):worker 启动需加载模型/连接 DB,给到 60s 宽限(原 30s)
+      start_period: 60s
+    # 资源限制 (v0.7.1 加固)
+    mem_limit: 1g
+    mem_reservation: 512m
+    cpus: "1.0"
+    pids_limit: 200
+    networks:
+      - kb-ai-net
+    depends_on:
+      dify-api:
+        condition: service_healthy
+      dify-db-init:
+        condition: service_completed_successfully
+
+  # -----------------------------------------------------------------
+  # 4.5 KB-AI 后端 (FastAPI, v1.5.0 容器化)
+  #    把 v0.8.0+ 的 host python 进程迁入 docker,与 qdrant/dify-api 同一编排
+  #    详见 docs/backend-container.md §1.1
+  # -----------------------------------------------------------------
+  kb-ai-backend:
+    # v1.5.0:从 host python 切到 build: (多阶段范式样本,见 docker/backend/Dockerfile)
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    image: kb-ai/backend:local   # 自定义 tag,避免与 python:3.12-slim 冲突
+    container_name: kb-ai-backend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8000:8000"     # FastAPI HTTP (loopback only)
+    volumes:
+      # 运行时数据卷:与 v0.7.1 一致,以相对路径挂载回 U 盘根
+      - ./data:/data
+      - ./vectors:/vectors
+      - ./cache:/cache
+      - ./logs:/logs
+      - ./tmp:/tmp
+      # frontend dist:由 backend 容器内挂载并由 FastAPI 服务(替代 host 静态挂载)
+      - ./frontend/dist:/app/frontend/dist:ro
+    environment:
+      # ----- 阿里云百炼 API -----
+      ALIYUN_BAILIAN_API_KEY: ${ALIYUN_BAILIAN_API_KEY}
+      # ----- Websearch 降级(可选) -----
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      BING_SEARCH_API_KEY: ${BING_SEARCH_API_KEY:-}
+      # ----- 模型与检索参数(v1.5.1 P0-5:补齐,改 .env 后 start.bat 重启即可生效)-----
+      MODEL_NAME: ${MODEL_NAME:-qwen3.6-plus}
+      MODEL_NAME_MAX: ${MODEL_NAME_MAX:-qwen3.7-max}
+      RERANK_TOP_N: ${RERANK_TOP_N:-5}
+      TEMPORAL_HALF_LIFE_DAYS: ${TEMPORAL_HALF_LIFE_DAYS:-180}
+      RETRIEVAL_FALLBACK_THRESHOLD: ${RETRIEVAL_FALLBACK_THRESHOLD:-0.6}
+      # ----- 项目根(容器内 /data 等) -----
+      KB_AI_ROOT: /data
+      # ----- 部署模式 -----
+      DEPLOY_ENV: production
+      LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    # 资源限制(参考 qdrant/dify-api 量级,FastAPI 单进程 + 模型加载)
+    mem_limit: 1g
+    mem_reservation: 512m
+    cpus: "1.0"
+    pids_limit: 200
+    networks:
+      - kb-ai-net
+    depends_on:
+      qdrant:
+        condition: service_healthy
+      dify-api:
+        condition: service_healthy
+
+  # -----------------------------------------------------------------
+  # 4. SQLite WAL 一次性初始化 (v0.7.1 加固,架构评审 §9.1 #4)
+  # -----------------------------------------------------------------
+  # 启动顺序: 等 dify-api healthy 后运行(此时 db.sqlite 已创建),
+  # 对其执行 PRAGMA journal_mode=WAL + PRAGMA synchronous=NORMAL,
+  # dify-worker 必须等服务完成后才启动,避免多进程并发写锁竞争。
+  # idempotent: 反复重启不会破坏 WAL 状态。
+  dify-db-init:
+    # v1.4.0:从 image: alpine:3.19 切到 build: (多阶段范式样本,见 docker/dify-db-init/Dockerfile)
+    build:
+      context: ./docker/dify-db-init
+      dockerfile: Dockerfile
+    image: kb-ai/dify-db-init:local   # 自定义 tag,避免与 alpine:3.19 冲突
+    container_name: kb-ai-dify-db-init
+    restart: "no"
+    volumes:
+      - ./data:/data
+    networks:
+      - kb-ai-net
+    depends_on:
+      dify-api:
+        condition: service_healthy
+    # 资源限制(v0.7.1 之后加固,架构评审 Part 2 §9.2 #15):
+    # init 容器短时任务(apk add + sqlite PRAGMA),但仍需限制以防 apk 拉取占满内存
+    mem_limit: 256m
+    mem_reservation: 64m
+    cpus: "0.5"
+    pids_limit: 50
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        apk add --no-cache sqlite >/dev/null 2>&1
+        DBFILE=/data/db.sqlite
+        # v0.7.1 修复:Dify 1.0 启动时不主动创建 db.sqlite(SQLAlchemy 懒连接),
+        # 首启这里文件还不存在,改为 create-if-not-exists 然后 PRAGMA,
+        # idempotent + 不再因为 DB 还没被 Dify 创建而 exit 1。
+        if [ ! -f "$$DBFILE" ]; then
+          echo "[dify-db-init] db.sqlite 不存在,创建空文件(Dify 首次 SQLAlchemy 连接会自动建表)"
+          sqlite3 "$$DBFILE" 'VACUUM;' 2>&1
+        fi
+        MODE=$$(sqlite3 "$$DBFILE" 'PRAGMA journal_mode=WAL;')
+        SYNC=$$(sqlite3 "$$DBFILE" 'PRAGMA synchronous=NORMAL;')
+        echo "[dify-db-init] journal_mode=$$MODE synchronous=$$SYNC on $$DBFILE"
+
+# ---------------------------------------------------------------------
+# 自定义网络: 容器间通过服务名互通
+# ---------------------------------------------------------------------
+networks:
+  kb-ai-net:
+    driver: bridge
+    name: kb-ai-net

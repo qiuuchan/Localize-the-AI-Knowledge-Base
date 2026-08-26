@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# KB-AI · pre-commit hook (v1.3.0)
+# 跑 ruff check backend/ tests/;失败则 abort commit
+# 注意:不在 scripts/hooks/pre-commit 调用 pytest/eslint/vite(留给 pre-push)
+
+set -e
+
+echo "[pre-commit] ruff check backend/ tests/ ..."
+cd "$(git rev-parse --show-toplevel)"
+
+if ! command -v ruff >/dev/null 2>&1; then
+  echo "[pre-commit] ruff not found in PATH; falling back to venv"
+  # v1.7.0 Mac 支持:Windows 走 .venv/Scripts/,macOS/Linux 走 .venv/bin/
+  if [ -x "backend/.venv/Scripts/ruff.exe" ]; then
+    RUFF="backend/.venv/Scripts/ruff.exe"
+  elif [ -x "backend/.venv/bin/ruff" ]; then
+    RUFF="backend/.venv/bin/ruff"
+  else
+    echo "[pre-commit] [WARN] ruff not available; skipping lint"
+    exit 0
+  fi
+else
+  RUFF="ruff"
+fi
+
+if "$RUFF" check backend/ tests/; then
+  echo "[pre-commit] ✓ ruff pass"
+  exit 0
+else
+  echo "[pre-commit] ✗ ruff failed; fix before commit"
+  exit 1
+fi

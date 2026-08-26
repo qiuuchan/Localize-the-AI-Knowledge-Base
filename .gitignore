@@ -1,0 +1,66 @@
+# .env 包含真实 API Key,不要进 git
+.env
+
+# 数据卷(运行时产生,体积大,不应入 git)
+data/*
+!data/.gitkeep
+vectors/*
+!vectors/.gitkeep
+cache/*
+!cache/.gitkeep
+logs/*
+!logs/.gitkeep
+tmp/*
+!tmp/.gitkeep
+
+# Docker 临时文件
+**/*.log
+**/__pycache__/
+**/.DS_Store
+compose.*.tmp
+
+# npx skills 本地安装的 skill 文件(随用随装,不入 git)
+.agents/
+skills-lock.json
+
+# Superpowers SDD 进度 ledger(运行时产生,git clean 会清掉)
+.superpowers/
+
+# Claude 工具本地配置
+.claude/
+
+# Windows 系统目录(本项目位于 U 盘根目录)
+$RECYCLE.BIN/
+System Volume Information/
+
+# 非本项目的 U 盘内容(用户原始资料 / 备份 / 工具二进制)
+新建文件夹/
+_ubrain_backup_*/
+.kb-ai-root/
+tools/
+
+# v1.5.1:shipping 预置 + 客户私料 + 客户文档,git add . 绝不能入库
+models/           # 2.6GB HF 模型(已通过 start.bat 复制到用户缓存,无需 git)
+shipping/         # 打印用 A4 PDF,二进制 + 文档漂移风险
+终端用户的资料/       # 用户私有资料目录(不入库)
+客户必读.md       # 客户面文档,不进 git
+
+# 前端构建产物与依赖
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+frontend/vite.config.js
+frontend/vite.config.d.ts
+
+# 后端运行时数据
+backend/data/
+
+# Python 虚拟环境与测试缓存
+backend/.venv/
+.pytest_cache/
+
+# v1.3.0: cost-alert token 用量日志 (运行时数据,不入仓)
+data/cost_log.jsonl
+data/cost_log.jsonl.*
+# v1.3.1: gzip 归档(轮转产出)
+data/cost_log.jsonl.*.gz

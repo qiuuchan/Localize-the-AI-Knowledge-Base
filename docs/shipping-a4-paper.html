@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>KB-AI 快速上手</title>
+<style>
+body { font-family: "Microsoft YaHei", sans-serif; max-width: 750px; margin: 30px auto; padding: 20px; line-height: 1.6; color: #222; }
+h1 { font-size: 24px; border-bottom: 2px solid #333; padding-bottom: 8px; }
+h2 { font-size: 20px; margin-top: 24px; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+h3 { font-size: 16px; }
+table { border-collapse: collapse; width: 100%; margin: 12px 0; }
+th, td { border: 1px solid #ccc; padding: 6px 10px; text-align: left; }
+th { background: #f0f0f0; }
+code { background: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: Consolas, monospace; }
+pre { background: #f4f4f4; padding: 10px; border-radius: 4px; }
+hr { border: none; border-top: 1px dashed #aaa; margin: 20px 0; }
+blockquote { border-left: 3px solid #FF540E; padding-left: 12px; color: #555; }
+</style>
+</head>
+<body>
+<h1>KB-AI 快速上手</h1>
+
+<p><strong>您的 AI 知识库 · 插上即用</strong></p>
+
+<hr />
+
+<h2>使用步骤</h2>
+
+<h3>① 把 U 盘插到电脑 USB 口</h3>
+
+<p>蓝色口是 USB 3.0,速度更快。</p>
+
+<h3>② 双击 <code>start.bat</code></h3>
+
+<p>在 U 盘根目录找到 <code>start.bat</code>(白底黑字图标),双击它。</p>
+
+<p><strong>第一次会等 3-5 分钟</strong>(在加载预置文件 + 启动服务)。以后每次启动 30-60 秒。</p>
+
+<h3>③ 浏览器自动打开</h3>
+
+<p>会弹出 KB-AI 的对话页面。<strong>如果没有自动打开</strong>,手动打开浏览器(Edge / Chrome),输入:</p>
+
+<pre><code>http://localhost:8000
+</code></pre>
+
+<h3>④ 用完拔盘</h3>
+
+<p>先双击 <code>stop.bat</code>,等屏幕说"现在您可以安全弹出 U 盘了",再拔盘。</p>
+
+<p><strong>这一步很重要!</strong> 直接拔盘可能损坏数据。</p>
+
+<hr />
+
+<h2>第一次试用</h2>
+
+<p>打开页面后,在对话框里随便问点什么,比如:</p>
+
+<ul>
+<li>"你好"</li>
+<li>"我开了一家川菜馆,推荐几道招牌菜"</li>
+<li>"红烧肉怎么做?"</li>
+</ul>
+
+<p>AI 会根据您 U 盘里的资料回答(如果没有资料,AI 会用自己的知识回答)。</p>
+
+<hr />
+
+<h2>常见问题</h2>
+
+<table>
+<thead>
+<tr>
+  <th>现象</th>
+  <th>怎么办</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+  <td>屏幕说"Docker 没启动"</td>
+  <td>双击桌面"Docker Desktop"图标,等 30 秒,再双击 start.bat</td>
+</tr>
+<tr>
+  <td>屏幕要您重启电脑</td>
+  <td>重启后再次双击 start.bat(只需重启一次)</td>
+</tr>
+<tr>
+  <td>浏览器没自动打开</td>
+  <td>手动打开浏览器,输入 <code>http://localhost:8000</code></td>
+</tr>
+<tr>
+  <td>AI 回答很慢</td>
+  <td>检查网络(能否打开 https://www.baidu.com)</td>
+</tr>
+<tr>
+  <td>AI 答"调用失败"</td>
+  <td>检查网络,或等 60 秒重试</td>
+</tr>
+<tr>
+  <td>拔盘忘 stop.bat</td>
+  <td>直接拔,下次跑会自动恢复(有警告提示)</td>
+</tr>
+</tbody>
+</table>
+
+<hr />
+
+<h2>想上传自己的资料?</h2>
+
+<p>打开 KB-AI 页面 → 左侧"资料库" → 拖入 Word / PDF / PPT / Excel 文档 → 等 5-10 分钟 → AI 就能引用您的资料回答问题。</p>
+
+<hr />
+
+<h2>故障联系</h2>
+
+<p>启动时遇到报错,把黑窗口截图微信发给发盘人即可。</p>
+
+<p><strong>服务时间</strong>:每天 9:00 - 22:00</p>
+
+<blockquote>
+  <p>我们承诺 10 分钟内回复。首月免费试用,不满意随时退回。</p>
+</blockquote>
+
+</body>
+</html>

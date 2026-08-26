@@ -1,0 +1,15 @@
+# Ruff 配置 · KB-AI 后端
+# 只启用高价值规则:语法错误(F)、基础错误(E)、警告(W)、未使用导入(F401 含于 F)
+# 不过度追求风格统一,避免一次性大改存量代码
+
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # 行长交由人工把握(大量中文字符串/提示词)
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # 包导出

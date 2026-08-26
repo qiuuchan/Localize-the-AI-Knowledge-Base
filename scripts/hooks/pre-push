@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+# KB-AI · pre-push hook (v1.3.0)
+# 跑 scripts/run-checks.ps1 (ruff + pytest + eslint + vite build,~30s);
+# 失败则 abort push。
+# 兼容 Git for Windows 默认 bash。pwsh 不在 PATH 时降级为警告 + exit 0。
+# 位置参数兼容:Git pre-push 传 <remote> <url>;用 "$@" 吃掉以避免未来 set -u 触发 unbound variable。
+
+set -e
+# Consume positional args (Git passes <remote> <url>) — documented for forward-compat.
+: "$@"
+
+echo "[pre-push] running scripts/run-checks.ps1 ..."
+cd "$(git rev-parse --show-toplevel)"
+
+if ! command -v pwsh >/dev/null 2>&1; then
+  echo "[pre-push] [WARN] pwsh (PowerShell 7+) not found in PATH."
+  echo "[pre-push] Skipping full checks; install pwsh or run run-checks.ps1 manually."
+  echo "[pre-push] Push will proceed WITHOUT verification."
+  exit 0
+fi
+
+if pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/run-checks.ps1; then
+  echo "[pre-push] ✓ run-checks.ps1 pass"
+  exit 0
+else
+  echo "[pre-push] ✗ run-checks.ps1 failed; fix before push"
+  exit 1
+fi

@@ -1,0 +1,3 @@
+{"question": "示例:招牌菜有哪些?", "expect_source": "menu.md", "expect_keywords": ["菜"], "category": "short", "expect_chunk_type": "text", "note": "模板示例 — 请按实际知识库内容替换本行"}
+{"question": "示例:2026 年营业时间是什么?", "expect_source": "store-info.md", "category": "year", "expect_year": 2026, "note": "模板示例 — expect_keywords 可省略"}
+{"question": "示例:请完整分析会员储值规则，逐项说明储值门槛、赠送条件、适用门店、有效期限、退款限制、余额处理、会员等级、积分累计、优惠叠加、活动例外、账户安全、挂失补办、信息变更、发票开具、消费查询、争议处理、未成年人使用限制、企业账户差异、线上线下渠道差异、节假日活动规则、跨门店结算方式、卡片损坏后的处理方式、账户冻结与恢复流程、长期未使用余额的管理方式，以及顾客在操作前需要确认的全部注意事项；如果不同场景存在例外，请分别列出条件、影响和建议，并说明遇到规则冲突时应以哪一项为准。", "expect_source": "member-policy.md", "expect_keywords": ["储值"], "category": "long", "max_retrieval_ms": 3000, "note": "模板示例"}
