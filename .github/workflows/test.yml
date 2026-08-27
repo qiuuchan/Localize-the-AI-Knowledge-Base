@@ -21,9 +21,7 @@ jobs:
       - name: Ruff check
         run: ruff check backend/ tests/
       - name: Pytest (unit only)
-        run: |
-          cd backend
-          python -m pytest ../tests/unit/ -v
+        run: python -m pytest tests/unit/ -v
 
   frontend:
     runs-on: ubuntu-latest
