@@ -8,11 +8,18 @@
 
 > **v2.0.0 = Agent Edition**:工具调用 Agent 全链路(4 工具注册表 + ReAct 循环 + 轨迹落库 + SSE 端点 + 前端步骤面板 + golden-agent 评测)。决策见 ADR-0002(自研 vs LangGraph)。公开仓同步本版本。
 
+### 新增(面试弹药 W4,T20-T23,2026-08-27 · 私有仓 docs/career/,sanitizer 排除不进公开仓)
+
+- `docs/career/resume-project.md`(T20):4 条量化简历 bullet(全栈交付/RAG 管线/Agent 循环+评估/可靠性工程)+ BOSS 直聘 120 字精简版 + 数字来源核对表(每数字可现场打开文件自证);golden-agent 评测报告数字待 T14 真实运行后替换占位
+- `docs/career/star-stories.md`(T21):6 个 STAR 故事(双模型路由/成本告警/golden-QA 评测/FMEA 加固/Agent 自研/非技术用户产品化),每个带 文件:行号 证据锚点 + 2 分钟口径 + 串讲建议
+- `docs/career/interview-faq.md`(T22+T23):10 题 FAQ(含 LangGraph 概念速学对比:StateGraph/checkpointer/生态 3 差异并入第 1 题)+ 3 条备用口径
+- sanitizer 增强:`EXCLUDE` 支持目录前缀(尾斜杠)排除,`docs/career/` 不进公开树(修复:原集合减法只匹配精确路径)
+
 ### 新增(golden-agent 评测集 + 评测脚本,v2.0 PR#5 / 工单 T14,2026-08-27)
 
 - 新增 `tests/eval/golden-agent.jsonl` 23 条(5 类,注释说明格式与判定):`kb_only` 8 / `calc_only` 3 / `time_only` 3 / `multi_step_calc` 5 / `web_fallback` 4;字段对齐设计稿 §8:`expect_tools`(子集判定:实际 ⊇ 期望)+ `expect_keywords`(answer 子串,空 = 只验非空)
 - 新增 `tests/eval/run_agent_eval.py`:结构化入口 `run_evaluation(base_url, dataset_path, max_steps)` 对齐 `run_eval.py:139`(供 CLI 与未来 `/api/eval` 复用);`_post_agent_chat` 消费 `/api/agent/chat` SSE 六事件聚合 tools_used/answer/steps/tokens/elapsed;指标:工具选择准确率 / 任务完成率 / 平均步数 / p95 延迟 / 每任务 token 成本 + category_stats 分桶;CLI 退出码语义对齐 run_eval.py(0 全过 / 1 有失败或空集 / 2 后端不可达),`--json` 模式供 CI 消费
-- 评测脚本 ruff 全绿;数据集 23 条 ≥ 15(降级线);**首轮真实评测待环境就绪后跑**(缺 `.env`:用户从 `.env.example` 复制填 key 后执行 `backend/.venv/Scripts/python tests/eval/run_agent_eval.py`;23 条 ≈ 40-90 次 LLM 调用,量级几毛~几元,报告落 `docs/eval/` 进 T20 简历弹药)
+- 评测脚本 ruff 全绿;数据集 23 条 ≥ 15(降级线);**首轮真实评测完成(2026-08-27)**:示例知识库 12 文档经 chunker+tokenizer 纯 keyword 入库(Qdrant 未运行,检索走 keyword-only 降级实战验证);20/23(87%),工具选择准确率 0.87(区间 87-100%),任务完成率 0.87;3 条 multi_step_calc 隐性计算(增长/间隔/翻倍)模型心算未调 calculator —— 真实弱点,记 v2.0.1 强化提示词候选;LLM 采样方差显著(两次全量失败条不同);报告 `docs/eval/2026-08-27-golden-agent-report.md` + 结构化 JSON `docs/eval/2026-08-27-golden-agent-result.json`;总成本 ¥1-3
 
 ### 新增(web_search 工具化 + 前端 Agent 步骤面板,v2.0 PR#4 / 工单 T13,2026-08-27)
 

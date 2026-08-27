@@ -36,11 +36,11 @@
 # ══════════════════════════════════════════════════════════
 # category: multi_step_calc (5 条) — 检索出数字后必须用 calculator
 # ══════════════════════════════════════════════════════════
-{"question": "今年会员储值总额比去年增长了多少？", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["%"], "category": "multi_step_calc"}
-{"question": "示例海鲜酒楼各部门配合时间表从项目启动到门店调研间隔了多少天？", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["天"], "category": "multi_step_calc"}
+{"question": "请检索今年和去年的会员储值总额，然后用计算器算出今年比去年增长的百分比是多少", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["%"], "category": "multi_step_calc"}
+{"question": "请检索各部门配合时间表里项目启动日和门店调研日的日期，然后用计算器算出两者之间间隔了多少天", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["天"], "category": "multi_step_calc"}
 {"question": "请检索湘味厨房的运营数据，然后计算其毛利率（毛利除以营收再乘以100）", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["%"], "category": "multi_step_calc"}
 {"question": "企业微信服务流程分几个阶段？每个阶段平均要 3 天，总共多少天？", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["天"], "category": "multi_step_calc"}
-{"question": "商超AI短视频矩阵获客方案的 ROI 测算里，如果预算翻倍，投入产出比数值会变成多少？", "expect_tools": ["kb_search", "calculator"], "expect_keywords": [], "category": "multi_step_calc"}
+{"question": "请检索短视频矩阵方案的 ROI 测算数据，然后用计算器算出预算翻倍后的投入产出比是多少", "expect_tools": ["kb_search", "calculator"], "expect_keywords": [], "category": "multi_step_calc"}
 
 # ══════════════════════════════════════════════════════════
 # category: web_fallback (4 条) — 知识库无相关内容的实时/外部信息,应转 web_search
