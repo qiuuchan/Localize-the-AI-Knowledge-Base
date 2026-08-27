@@ -64,3 +64,4 @@ data/cost_log.jsonl
 data/cost_log.jsonl.*
 # v1.3.1: gzip 归档(轮转产出)
 data/cost_log.jsonl.*.gz
+tests/eval/_pytest_*.jsonl

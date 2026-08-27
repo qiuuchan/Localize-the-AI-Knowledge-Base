@@ -4,7 +4,6 @@
 从 Windows Forms MessageBox 改为 Show-KBAINotice(平台分支)。
 """
 
-import re
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent.parent

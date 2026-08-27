@@ -1,0 +1,17 @@
+# Ruff 配置 · KB-AI 全仓(根目录)
+# 与 backend/ruff.toml 策略完全一致:只启用高价值规则(E/F/W)。
+# 背景:ruff 0.16.4 升级后,无配置的目录(如 tests/)会落入新版默认规则集
+# (含 RUF 系列),把存量代码刷出大量噪音。此文件将既有 lint 策略显式化
+# 到全仓,消除版本升级回归;规则选择未做任何变更。
+
+target-version = "py312"
+line-length = 120
+
+[lint]
+select = ["E", "F", "W"]
+ignore = [
+    "E501",  # 行长交由人工把握(大量中文字符串/提示词)
+]
+
+[lint.per-file-ignores]
+"__init__.py" = ["F401"]  # 包导出

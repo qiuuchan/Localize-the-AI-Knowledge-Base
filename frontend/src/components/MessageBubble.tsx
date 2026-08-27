@@ -4,7 +4,8 @@
 
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import type { Citation } from "../lib/types";
+import type { AgentStep, AgentMeta, Citation } from "../lib/types";
+import { AgentStepsPanel } from "./AgentStepsPanel";
 
 export function formatTime(d: Date): string {
   return d.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
@@ -154,6 +155,9 @@ interface MessageBubbleProps {
   lastUserMessage?: string;
   // v1.1.0 PR#3 Task 3.5:跳过反问回调(App 收到回调后带 skip_clarification=true 重发)
   onSkipClarification?: () => void;
+  // v2.0 PR#4(T13):Agent 步骤轨迹 + 运行元信息(budget_exhausted 提示条)
+  agentSteps?: AgentStep[];
+  agentMeta?: AgentMeta;
 }
 
 // v0.8.8(UX):等待期间轮换的小贴士(面向非技术用户,只讲用法)
@@ -232,6 +236,9 @@ export function MessageBubble(props: MessageBubbleProps) {
   // 后端 clarify 路径响应时注入;original_question 优先,缺则回退到上下文里
   // 最近一条用户消息(从 App 的 lastUserMessage 传入)。
   const showSkip = !!props.clarification && !!props.onSkipClarification;
+  // v2.0 PR#4(T13):Agent 步骤面板
+  const agentSteps = (props.agentSteps || []) as AgentStep[];
+  const agentMeta = props.agentMeta as AgentMeta | undefined;
   return (
     <div className={`message ${props.role}`} aria-label={label}>
       {props.role === "assistant" && (
@@ -245,6 +252,12 @@ export function MessageBubble(props: MessageBubbleProps) {
           />
         )}
         {imagePaths.length > 0 && <ImageThumbnails paths={imagePaths} />}
+        {agentSteps.length > 0 && (
+          <AgentStepsPanel
+            steps={agentSteps}
+            budgetExhausted={agentMeta?.budget_exhausted}
+          />
+        )}
         {parseCitations(props.content, props.citations)}
         {props.isStreaming && !showThinking && <span className="typing-cursor" />}
         {options.length > 0 && (

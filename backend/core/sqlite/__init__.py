@@ -8,6 +8,8 @@ boot.py's SSE schema_migration stage.
 PR #2 removed the temporary re-export shim: callers import from the specific
 repo, e.g. ``from backend.core.sqlite.sessions_repo import create_session`` or
 ``from backend.core.sqlite.connection import get_connection, transaction``.
+
+v2.0 PR#3 adds agent_repo (agent_runs + agent_steps).
 """
 from __future__ import annotations
 
@@ -17,6 +19,7 @@ from typing import Optional
 from backend.core.rag import keyword_index as rag_keyword_index
 
 from . import (
+    agent_repo,
     connection,
     databases_repo,
     degradation_repo,
@@ -38,6 +41,7 @@ _REPOS = [
     degradation_repo,
     databases_repo,
     tags_repo,
+    agent_repo,
 ]
 
 

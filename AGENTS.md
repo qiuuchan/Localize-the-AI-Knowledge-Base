@@ -27,10 +27,11 @@ KB-AI/
 ├── .python-version           # 3.12.6
 ├── backend/                  # v0.8.4+ FastAPI 后端(完整 RAG 管线 + v0.8.11 Database/Dashboard + v1.1.0 PR#4 标签 + v1.3.0 sqlite 包拆分)
 │   ├── main.py               # FastAPI 入口(CORS 缩窄到 localhost:8000/8080)
-│   ├── api/                  # 11 路由:v0.8.11 加 databases/dashboard;v0.8.12 加 eval;v1.1.0 PR#4 加 tags
+│   ├── api/                  # 12 路由:v0.8.11 加 databases/dashboard;v0.8.12 加 eval;v1.1.0 PR#4 加 tags;v2.0 PR#3 加 agent
 │   │   ├── knowledge.py      # /knowledge CRUD + /upload(SSE) + /reembed(v0.8.11 加 database_id 参数)
 │   │   ├── databases.py      # v0.8.11(P1.1) /knowledge/databases CRUD + assign
 │   │   ├── chat.py           # SSE chat + hybrid retrieval + LLM fallback(降级事件带 component)
+│   │   ├── agent.py          # v2.0 PR#3 三端点:POST /agent/chat(SSE 六事件 + cost-alert 阻断)+ GET /agent/runs + GET /agent/runs/{id}
 │   │   ├── boot.py           # 8+2 阶段启动进度 SSE(v0.8.11 加 orphan_recovery;v1.1.0 PR#4 加 schema_migration 8%)
 │   │   ├── dashboard.py      # v0.8.11(P1.6) /dashboard/overview 聚合(v1.3.0 PR#2 加 cost_alert 字段)
 │   │   ├── eval.py           # v0.8.12(P2.1) /eval/run + /eval/results + /eval/status
@@ -39,12 +40,13 @@ KB-AI/
 │   │   ├── debug.py          # /debug/retrieval 检索全链路
 │   │   ├── tags.py           # v1.1.0 PR#4 7 端点:/tags CRUD + /doc-tags 多对多 + 按 tag 过滤文档
 │   │   └── health.py         # health + status
-│   ├── core/                 # 配置 + 持久化 + RAG 11 模块
+│   ├── core/                 # 配置 + 持久化 + RAG 11 模块 + Agent(v2.0)
 │   │   ├── config.py         # 项目根/.env/占位符识别
 │   │   ├── ps_runner.py      # PowerShell 子进程桥接
 │   │   ├── atomic_io.py      # v0.8.11(P1.3) 原子写工具(借鉴 Yuxi-Know)
 │   │   ├── bulk_assign.py    # v1.1.0 PR#1 批量迁移 + Qdrant payload 重写(治 #11)
-│   │   ├── sqlite/           # v1.3.0 PR#1:5-repo 包拆分 + transaction()(connection + sessions_repo / messages_repo / degradation_repo / databases_repo / tags_repo + orchestrator __init__)
+│   │   ├── agent/            # v2.0 工具调用 Agent:tools.py(4 工具注册表 + execute_tool 分发 + kb_offset 全局 citation 编号)+ loop.py(run_agent 生成器:max_steps/repeat_guard/budget 收尾)+ trajectory.py(轨迹门面,吞错不阻断)
+│   │   ├── sqlite/           # v1.3.0 PR#1:6-repo 包拆分 + transaction()(connection + sessions_repo / messages_repo / degradation_repo / databases_repo / tags_repo + v2.0 agent_repo + orchestrator __init__)
 │   │   └── rag/              # chunker/embedder/qdrant_store/keyword_index/mineru/llm/metadata/query_profile/retriever/reranker/query_rewriter/tokenizer
 │   ├── requirements.txt      # fastapi/uvicorn/sse-starlette/sentence-transformers
 │   └── requirements-dev.txt  # httpx/pytest
@@ -85,8 +87,8 @@ KB-AI/
 │   ├── test_rag1..3.ps1     # RAG 三阶段回归
 │   ├── test_chunking.ps1 / test_certainty.ps1 / test_model_routing.ps1
 │   ├── e2e_test.ps1
-│   ├── unit/                 # pytest:reranker/query_rewriter/retriever_fallback/debug_api/temporal_weighting/rag_core/streaming_extract + v0.8.11 database_crud/atomic_io/degradation_component/dashboard_aggregations + v0.8.12 eval_route/parsed_cache_namespacing + v1.1.0 PR#1 database_cascade/bulk_assign_qdrant + PR#2 limit_guard + PR#3 skip_clarification/image_endpoint + PR#4 tags_api/session_title + v1.2.0 query_profile/xlsx_structuring/reparse_task/retrieval_quality/qdrant_public_api + v1.3.0 PR#1 sqlite_refactor + PR#2 cost_alert/chat_cost_alert_block/dashboard_cost_alert
-│   ├── eval/                 # RAG 评测(golden-qa.jsonl 50 条 + run_eval.py)
+│   ├── unit/                 # pytest:reranker/query_rewriter/retriever_fallback/debug_api/temporal_weighting/rag_core/streaming_extract + v0.8.11 database_crud/atomic_io/degradation_component/dashboard_aggregations + v0.8.12 eval_route/parsed_cache_namespacing + v1.1.0 PR#1 database_cascade/bulk_assign_qdrant + PR#2 limit_guard + PR#3 skip_clarification/image_endpoint + PR#4 tags_api/session_title + v1.2.0 query_profile/xlsx_structuring/reparse_task/retrieval_quality/qdrant_public_api + v1.3.0 PR#1 sqlite_refactor + PR#2 cost_alert/chat_cost_alert_block/dashboard_cost_alert + v2.0 PR#1-3 agent_tools/agent_loop/agent_repo/agent_api
+│   ├── eval/                 # RAG 评测(golden-qa.jsonl 50 条 + run_eval.py)+ Agent 评测(golden-agent.jsonl 23 条 + run_agent_eval.py)
 │   └── integration/          # smoke-chat.ps1 / hybrid-search.ps1 / api/test_api.py(6 测)
 ├── docs/                     # 用户与工程文档
 │   ├── m2-usage.md / quickstart.md / safe-eject.md / troubleshooting.md
@@ -351,6 +353,7 @@ pwsh -File scripts/install-hooks.ps1
 
 | 日期 | 版本 | 关键变更 |
 |---|---|---|
+| 2026-08-27 | **v2.0.0** | **Agent Edition(minor · 新能力)**:工具调用 Agent 全链路落地 —— 6 PR 收官(**PR#1** `agent/tools.py` 3 工具(kb_search/calculator/get_current_time);**PR#2** `llm.py` tools 扩展 + `agent/loop.py` ReAct 循环(复刻 L0→L3 降级);**PR#3** `agent_repo` 轨迹落库 + `/api/agent/*` 三端点(SSE 六事件 + cost-alert 阻断);**PR#4** `web_search` 工具 + 前端 AgentStepsPanel + 设置页 Agent 模式开关 + citation 全局编号修复;**PR#5** golden-agent 评测集 23 条 + `run_agent_eval.py`;**PR#6** 收口:version→2.0.0 + ADR-0002(自研 vs LangGraph));pytest 344→353、vitest 13→18、run-checks 4/4;公开仓同步 + `v2.0.0` tag(ADR-0002 详见 `docs/adr/0002-agent-loop-self-built.md`) |
 | 2026-07-13 | v0.7.1~0.7.2 | 健康度体检全面修复;Hybrid Search 实现 |
 | 2026-07-13 | v0.8.0 | FastAPI 后端包装层实现 |
 | 2026-07-13 | v0.8.1 | 双模型路由;XAIAgent 暗黑赛博风格 |

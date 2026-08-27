@@ -2234,3 +2234,177 @@ button:disabled {
   font-size: 14px;
 }
 
+
+/* =====================================================================
+   v2.0 PR#4(T13):Agent 步骤面板 + Agent 模式开关
+   暗黑赛博风格:黑色玻璃卡片 + 熔岩橙强调;成功绿 / 失败红 / 运行中橙
+   ===================================================================== */
+
+/* ---- 设置页 toggle 开关 ---- */
+.toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  transition: background var(--duration-fast) ease, border-color var(--duration-fast) ease;
+}
+.toggle-switch.on {
+  background: rgba(255, 84, 14, 0.35);
+  border-color: var(--accent);
+}
+.toggle-switch .toggle-knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #a1a1aa;
+  transition: transform var(--duration-fast) ease, background var(--duration-fast) ease;
+}
+.toggle-switch.on .toggle-knob {
+  transform: translateX(20px);
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
+}
+
+/* ---- Agent 步骤面板 ---- */
+.agent-steps-panel {
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.35);
+  overflow: hidden;
+}
+.agent-budget-banner {
+  padding: 6px 12px;
+  font-size: 12px;
+  background: rgba(217, 119, 6, 0.15);
+  border-bottom: 1px solid rgba(217, 119, 6, 0.35);
+  color: #ffedd5;
+}
+.agent-steps-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  text-align: left;
+  color: var(--text-primary);
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+.agent-steps-toggle:hover {
+  background: rgba(255, 84, 14, 0.06);
+}
+.agent-steps-toggle-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.agent-steps-count {
+  font-size: 11px;
+  color: #a1a1aa;
+  font-family: var(--font-body);
+}
+.agent-steps-arrow {
+  color: #a1a1aa;
+  font-size: 12px;
+}
+.agent-steps-body {
+  padding: 4px 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.agent-step-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  border-left: 3px solid #71717a;
+}
+.agent-step-card.ok {
+  border-left-color: #22c55e;
+}
+.agent-step-card.error {
+  border-left-color: #ef4444;
+}
+.agent-step-card.running {
+  border-left-color: var(--accent);
+}
+.agent-step-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+.agent-step-dot.ok {
+  background: #22c55e;
+  box-shadow: 0 0 6px rgba(34, 197, 94, 0.6);
+}
+.agent-step-dot.error {
+  background: #ef4444;
+  box-shadow: 0 0 6px rgba(239, 68, 68, 0.6);
+}
+.agent-step-dot.running {
+  background: var(--accent);
+  box-shadow: 0 0 6px var(--accent-glow);
+  animation: agent-dot-blink 1s ease-in-out infinite;
+}
+@keyframes agent-dot-blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.agent-step-main {
+  flex: 1;
+  min-width: 0;
+}
+.agent-step-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.agent-step-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--accent);
+}
+.agent-step-status {
+  font-size: 11px;
+  color: #a1a1aa;
+}
+.agent-step-latency {
+  font-size: 11px;
+  color: #71717a;
+  font-family: var(--font-mono);
+  margin-left: auto;
+}
+.agent-step-args {
+  margin-top: 2px;
+  font-size: 11px;
+  color: #a1a1aa;
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agent-step-excerpt {
+  margin-top: 2px;
+  font-size: 12px;
+  color: var(--text-primary);
+  opacity: 0.85;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.agent-step-card.error .agent-step-excerpt {
+  color: #fca5a5;
+}

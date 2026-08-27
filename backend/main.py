@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from backend.api import boot, chat, dashboard, databases, debug, eval, health, knowledge, sessions, shutdown, tags
+from backend.api import agent, boot, chat, dashboard, databases, debug, eval, health, knowledge, sessions, shutdown, tags
 from backend.core.config import get_root_dir
 from backend.core.sqlite import init_db
 
@@ -59,6 +59,7 @@ app.include_router(debug.router, prefix="/api", tags=["debug"])
 app.include_router(dashboard.router, prefix="/api", tags=["dashboard"])
 app.include_router(eval.router, prefix="/api", tags=["eval"])
 app.include_router(tags.router, prefix="/api", tags=["tags"])
+app.include_router(agent.router, prefix="/api", tags=["agent"])
 
 
 @app.get("/api")

@@ -51,24 +51,29 @@ FALLBACK_RETRY_DELAY = 2.0
 # ---------------------------------------------------------------------------
 
 
-def _post_chat(
+def _send_chat_request(
     api_key: str,
     model: str,
     messages: List[Dict[str, Any]],
     *,
     max_tokens: int = DEFAULT_MAX_TOKENS,
     timeout: int = 60,
-) -> Tuple[str, Optional[Dict[str, int]]]:
-    """Call non-streaming chat completion; return (content, usage).
+    tools: Optional[List[Dict[str, Any]]] = None,
+    tool_choice: str = "auto",
+) -> Dict[str, Any]:
+    """Shared non-streaming request → parsed JSON dict.
 
-    v1.3.0: 增加 usage 返回,供 cost-alert 计量。
-    usage 字段为 None 时(API 异常 / 不返回),调用方应跳过 cost 记录。
+    v2.0 PR#2: 从 _post_chat 抽出 HTTP 层;tools 非空时写入请求体
+    (OpenAI 兼容 function calling,T09 冒烟已验证 DashScope 支持)。
     """
-    body = {
+    body: Dict[str, Any] = {
         "model": model,
         "messages": messages,
         "max_tokens": max_tokens,
     }
+    if tools:
+        body["tools"] = tools
+        body["tool_choice"] = tool_choice
     payload = json.dumps(body, ensure_ascii=False).encode("utf-8")
     req = urllib.request.Request(
         CHAT_URL,
@@ -96,13 +101,91 @@ def _post_chat(
     choices = parsed.get("choices") or []
     if not choices:
         raise RuntimeError(f"LLM returned no choices: {raw[:200]}")
-    msg = choices[0].get("message") or {}
+    return parsed
+
+
+def _extract_tool_calls(message: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Extract normalized tool_calls from a response message (v2.0 PR#2).
+
+    T09 冒烟:function.arguments 是 JSON 字符串(由调用方二次解析),
+    id 为 call_* 形式须原样回传;此处只做存在性归一,不解析 arguments。
+    """
+    raw = message.get("tool_calls") or []
+    normalized: List[Dict[str, Any]] = []
+    for tc in raw:
+        if not isinstance(tc, dict):
+            continue
+        fn = tc.get("function") or {}
+        if not fn.get("name"):
+            continue
+        normalized.append(
+            {
+                "id": tc.get("id") or "",
+                "type": tc.get("type") or "function",
+                "function": {
+                    "name": fn["name"],
+                    "arguments": fn.get("arguments") or "{}",
+                },
+            }
+        )
+    return normalized
+
+
+def _post_chat(
+    api_key: str,
+    model: str,
+    messages: List[Dict[str, Any]],
+    *,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    timeout: int = 60,
+) -> Tuple[str, Optional[Dict[str, int]]]:
+    """Call non-streaming chat completion; return (content, usage).
+
+    v1.3.0: 增加 usage 返回,供 cost-alert 计量。
+    usage 字段为 None 时(API 异常 / 不返回),调用方应跳过 cost 记录。
+    v2.0 PR#2: HTTP 层抽到 _send_chat_request(行为不变);
+    带 tools 的调用走 _post_chat_with_tools。
+    """
+    parsed = _send_chat_request(api_key, model, messages, max_tokens=max_tokens, timeout=timeout)
+    msg = parsed["choices"][0].get("message") or {}
     content = msg.get("content")
     if content is None:
-        raise RuntimeError(f"LLM returned empty content: {raw[:200]}")
+        raise RuntimeError(f"LLM returned empty content: {json.dumps(parsed)[:200]}")
     # v1.3.1: 改用 safe_get_usage_tokens 防御性解析(异常时返回 None 而非抛)
     usage = safe_get_usage_tokens(parsed.get("usage"))
     return content, usage
+
+
+def _post_chat_with_tools(
+    api_key: str,
+    model: str,
+    messages: List[Dict[str, Any]],
+    *,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    timeout: int = 60,
+    tools: Optional[List[Dict[str, Any]]] = None,
+    tool_choice: str = "auto",
+) -> Tuple[str, List[Dict[str, Any]], Optional[Dict[str, int]], Optional[str]]:
+    """Tools-aware chat completion → (content, tool_calls, usage, finish_reason).
+
+    v2.0 PR#2(T09 注意点):finish_reason="tool_calls" 时 content 为空串,
+    不按文本解析,先判 tool_calls 存在性。
+    """
+    parsed = _send_chat_request(
+        api_key,
+        model,
+        messages,
+        max_tokens=max_tokens,
+        timeout=timeout,
+        tools=tools,
+        tool_choice=tool_choice,
+    )
+    choice = parsed["choices"][0]
+    msg = choice.get("message") or {}
+    content = msg.get("content") or ""
+    tool_calls = _extract_tool_calls(msg)
+    usage = safe_get_usage_tokens(parsed.get("usage"))
+    return content, tool_calls, usage, choice.get("finish_reason")
 
 
 # ---------------------------------------------------------------------------
@@ -300,6 +383,93 @@ def chat_with_fallback(
         _record_event(session_id, query_for_event, source="llm",
                       reason="fallback_retry_ok", model=fallback)
         return content, fallback, "fallback"
+    except Exception as e:
+        last_error = e
+
+    assert last_error is not None
+    raise last_error
+
+
+def chat_with_fallback_tools(
+    messages: List[Dict[str, Any]],
+    *,
+    primary_model: str,
+    tools: Optional[List[Dict[str, Any]]] = None,
+    tool_choice: str = "auto",
+    api_key: Optional[str] = None,
+    fallback: Optional[str] = None,
+    max_tokens: int = DEFAULT_MAX_TOKENS,
+    session_id: Optional[str] = None,
+    query_for_event: Optional[str] = None,
+) -> Tuple[str, List[Dict[str, Any]], str, str, Optional[Dict[str, int]]]:
+    """Tools-aware L0->L3 fallback chat (v2.0 PR#2, 设计稿 §4.4).
+
+    复刻 chat_with_fallback 的降级链与降级事件;tools=None 时等价普通调用。
+    Returns (content, tool_calls, model_used, model_reason, usage)。
+    usage 照常走 _log_token_usage(cost-alert 计量不因 Agent 链路缺失)。
+    """
+    api_key = api_key or get_env_or_env_var("ALIYUN_BAILIAN_API_KEY")
+    if not api_key:
+        raise RuntimeError("ALIYUN_BAILIAN_API_KEY not configured")
+
+    fallback = fallback or fallback_model(primary_model)
+    last_error: Optional[Exception] = None
+
+    # L0: primary
+    try:
+        content, tool_calls, usage, _ = _post_chat_with_tools(
+            api_key, primary_model, messages,
+            max_tokens=max_tokens, tools=tools, tool_choice=tool_choice,
+        )
+        if usage is not None:
+            _log_token_usage(primary_model, usage["input_tokens"], usage["output_tokens"])
+        return content, tool_calls, primary_model, "primary", usage
+    except Exception as e:
+        last_error = e
+        _record_event(session_id, query_for_event, source="llm",
+                      reason=f"primary_fail:{type(e).__name__}", model=primary_model)
+
+    # L1: primary retry
+    time.sleep(FALLBACK_RETRY_DELAY)
+    try:
+        content, tool_calls, usage, _ = _post_chat_with_tools(
+            api_key, primary_model, messages,
+            max_tokens=max_tokens, tools=tools, tool_choice=tool_choice,
+        )
+        if usage is not None:
+            _log_token_usage(primary_model, usage["input_tokens"], usage["output_tokens"])
+        _record_event(session_id, query_for_event, source="llm",
+                      reason="primary_retry_ok", model=primary_model)
+        return content, tool_calls, primary_model, "primary", usage
+    except Exception as e:
+        last_error = e
+
+    # L2: switch to fallback
+    _record_event(session_id, query_for_event, source="llm",
+                  reason="primary_to_fallback", model=fallback)
+    try:
+        content, tool_calls, usage, _ = _post_chat_with_tools(
+            api_key, fallback, messages,
+            max_tokens=max_tokens, tools=tools, tool_choice=tool_choice,
+        )
+        if usage is not None:
+            _log_token_usage(fallback, usage["input_tokens"], usage["output_tokens"])
+        return content, tool_calls, fallback, "fallback", usage
+    except Exception as e:
+        last_error = e
+
+    # L3: fallback retry
+    time.sleep(FALLBACK_RETRY_DELAY)
+    try:
+        content, tool_calls, usage, _ = _post_chat_with_tools(
+            api_key, fallback, messages,
+            max_tokens=max_tokens, tools=tools, tool_choice=tool_choice,
+        )
+        if usage is not None:
+            _log_token_usage(fallback, usage["input_tokens"], usage["output_tokens"])
+        _record_event(session_id, query_for_event, source="llm",
+                      reason="fallback_retry_ok", model=fallback)
+        return content, tool_calls, fallback, "fallback", usage
     except Exception as e:
         last_error = e
 
@@ -601,16 +771,21 @@ def format_chunks_only(
     chunks: Sequence[Dict[str, Any]],
     *,
     max_context_chars: int = 6000,
+    start_index: int = 1,
 ) -> Dict[str, Any]:
     """Return {ctx, citations} for top-K chunks.
 
     ctx: numbered source/text blocks, accumulated up to max_context_chars.
     citations: list of {index, source, snippet(<=120 chars), score}.
+
+    start_index: v2.0 PR#4 — Agent 多轮 kb_search 时用全局偏移续编角标
+    (发现 #1:observation 局部编号 vs 聚合 citations 全局编号错位)。
+    默认 1 保持历史行为,现有调用零回归。
     """
     ctx_parts: List[str] = []
     citations: List[Dict[str, Any]] = []
     total = 0
-    for i, c in enumerate(chunks, start=1):
+    for i, c in enumerate(chunks, start=start_index):
         src = c.get("source") or ""
         text = c.get("text") or ""
         # score 防御:v0.8.4 前端 toFixed() 假设 score 是 number;

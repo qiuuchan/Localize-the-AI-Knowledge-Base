@@ -26,6 +26,54 @@ export interface Message {
   // v1.1.0 PR#3 Task 3.5:反问上下文 — 当 assistant 走 clarify 路径时由 App
   // 注入,original_question 是当时发给后端的原问题(供 SkipClarificationButton 渲染)。
   clarification?: { original_question?: string };
+  // v2.0 PR#4(T13):Agent 模式步骤轨迹(tool_call/tool_result 实时累积)
+  agentSteps?: AgentStep[];
+  // v2.0 PR#4:Agent 运行元信息(answer 事件 agent 对象 + budget_exhausted)
+  agentMeta?: AgentMeta;
+}
+
+// v2.0 PR#4(T13):Agent 步骤面板
+export type AgentToolStatus = "running" | "ok" | "error";
+
+export interface AgentStep {
+  step: number;          // 循环轮次(step_start 的 step)
+  name: string;          // 工具名
+  argsSummary?: string;  // 参数摘要(≤60 字符)
+  status: AgentToolStatus;
+  latencyMs?: number;
+  excerpt?: string;      // 结果摘要(≤200 字符)
+}
+
+export interface AgentMeta {
+  run_id?: string;
+  steps?: number;
+  tools_used?: string[];
+  total_in?: number;
+  total_out?: number;
+  budget_exhausted?: boolean;
+}
+
+// v2.0 PR#4:POST /api/agent/chat 请求体(设计稿 §6.1)
+export interface AgentChatRequest {
+  question: string;
+  session_id?: string | null;
+  max_steps?: number;
+  top_k?: number;
+  history_limit?: number;
+  model_name?: string | null;
+  model_name_max?: string | null;
+}
+
+// v2.0 PR#4:GET /api/agent/runs 列表项
+export interface AgentRunSummary {
+  id: string;
+  question: string;
+  status: string;
+  steps_count: number;
+  tools_used: string;
+  total_in: number;
+  total_out: number;
+  created_at: string;
 }
 
 export interface Session {

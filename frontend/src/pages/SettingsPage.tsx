@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react";
 import {
   Activity,
+  Bot,
   CheckCircle2,
   Cpu,
   FolderOpen,
@@ -22,6 +23,9 @@ interface SettingsPageProps {
   currentSession: Session | null;
   // PATCH 成功后 App.tsx 重新拉一遍 sessions 列表,保持 drawer 同步。
   onSessionUpdated: () => void;
+  // v2.0 PR#4(T13):Agent 模式开关 — 默认关走旧 /api/chat;打开走 /api/agent/chat
+  agentMode: boolean;
+  onAgentModeChange: (v: boolean) => void;
 }
 
 // v1.1.0 PR#2 Task 2.4:history_limit 4 档(10/20/50/100),T2.1/2.3 + chat.py:58
@@ -216,6 +220,43 @@ export function SettingsPage(props: SettingsPageProps) {
               }}
             >
               {loading ? "..." : data?.config?.root || "未知"}
+            </span>
+          </div>
+        </div>
+
+        {/* v2.0 PR#4(T13):Agent 模式开关 — 默认关走旧 /api/chat(标准 RAG 问答);
+            打开走 /api/agent/chat(工具调用 Agent,步骤面板可见),两条链路并存可对比。 */}
+        <div className="settings-card">
+          <div className="settings-card-title">
+            <Bot size={16} /> 对话模式
+          </div>
+          <div className="settings-row">
+            <span className="settings-label">Agent 模式</span>
+            <span className="settings-value">
+              <button
+                type="button"
+                className={`toggle-switch ${props.agentMode ? "on" : ""}`}
+                role="switch"
+                aria-checked={props.agentMode}
+                aria-label="Agent 模式"
+                onClick={() => props.onAgentModeChange(!props.agentMode)}
+                data-testid="agent-mode-toggle"
+              >
+                <span className="toggle-knob" />
+              </button>
+            </span>
+          </div>
+          <div
+            className="settings-row"
+            style={{ paddingTop: 0, borderBottom: "none" }}
+          >
+            <span
+              className="settings-label"
+              style={{ fontSize: 12, color: "var(--text-muted)" }}
+            >
+              {props.agentMode
+                ? "已开启：多步问题由 Agent 自主拆解（检索 → 计算 → 作答），工具调用过程在回答上方可见"
+                : "默认关闭：标准问答，一次检索一次回答；开启后多步问题交给 Agent 处理"}
             </span>
           </div>
         </div>

@@ -6,8 +6,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Paperclip, Send } from "lucide-react";
-import { API_BASE, getJSON, postJSON } from "./lib/api";
+import { API_BASE, getJSON, postAgentChat, postJSON } from "./lib/api";
 import type {
+  AgentMeta,
+  AgentStep,
   BootStageState,
   Citation,
   Message,
@@ -28,6 +30,17 @@ import { KnowledgePage } from "./pages/KnowledgePage";
 import { SettingsPage } from "./pages/SettingsPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { AlertTriangle, X } from "lucide-react";
+
+// v2.0 PR#4(T13):Agent 工具参数摘要(≤60 字符,JSON 序列化失败给空串)
+function summarizeAgentArgs(args: unknown): string {
+  if (!args || typeof args !== "object") return "";
+  try {
+    const s = JSON.stringify(args);
+    return s.length > 60 ? s.slice(0, 57) + "..." : s;
+  } catch {
+    return "";
+  }
+}
 
 // =========================================================================
 // App 主组件:状态 + SSE 消费 + 页面路由
@@ -55,10 +68,28 @@ export default function App() {
   // v1.1.0 PR#2 Task 2.4:SSElimit-guard soft_warning — 当会话历史 ≥ history_limit * 0.8
   // 时,后端在第一个 status 事件里下发软上限提示,前端展示顶部黄色横幅;用户可手动关闭。
   const [softWarning, setSoftWarning] = useState<string | null>(null);
+  // v2.0 PR#4(T13):Agent 模式开关 — 默认关走旧 /api/chat;打开走 /api/agent/chat。
+  // localStorage 持久化,两条链路并存可对比(设计稿 §7)。
+  const [agentMode, setAgentMode] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem("kb_ai_agent_mode") === "1";
+    } catch {
+      return false;
+    }
+  });
   const [currentPage, setCurrentPage] = useState<PageId>("chat");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const bootEsRef = useRef<EventSource | null>(null);
+
+  const handleAgentModeChange = useCallback((v: boolean) => {
+    setAgentMode(v);
+    try {
+      localStorage.setItem("kb_ai_agent_mode", v ? "1" : "0");
+    } catch {
+      // localStorage 不可用时仅内存生效
+    }
+  }, []);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -229,22 +260,68 @@ export default function App() {
       }
 
       try {
-        const response = await fetch(`${API_BASE}/chat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            question: text,
-            session_id: sid,
-            top_k: 5,
-            skip_clarification: skipClarification,
-          }),
-        });
+        // v2.0 PR#4(T13):Agent 模式走 /api/agent/chat(SSE 六事件契约),否则走旧 /api/chat。
+        // 两条链路并存,开关在设置页,默认关。
+        const response = agentMode
+          ? await postAgentChat({
+              question: text,
+              session_id: sid,
+              top_k: 5,
+              max_steps: 8,
+              history_limit: 50,
+            })
+          : await fetch(`${API_BASE}/chat`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                question: text,
+                session_id: sid,
+                top_k: 5,
+                skip_clarification: skipClarification,
+              }),
+            });
       if (!response.ok) throw new Error(`请求失败: ${response.status}`);
 
       const reader = response.body!.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
       let finalAnswer: any = null;
+      // v2.0 PR#4:Agent 步骤的实时累积(避免 setMessages 闭包读旧值)
+      let pendingSteps: AgentStep[] = [];
+
+      const appendStep = (step: AgentStep) => {
+        pendingSteps = [...pendingSteps, step];
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantId ? { ...m, agentSteps: pendingSteps } : m,
+          ),
+        );
+      };
+      const updateStep = (
+        step: number,
+        name: string,
+        patch: Partial<AgentStep>,
+      ) => {
+        const idx = [...pendingSteps]
+          .reverse()
+          .findIndex(
+            (s) =>
+              s.step === step &&
+              s.name === name &&
+              (s.status === "running" || s.status === "ok"),
+          );
+        if (idx >= 0) {
+          const realIdx = pendingSteps.length - 1 - idx;
+          pendingSteps = pendingSteps.map((s, i) =>
+            i === realIdx ? { ...s, ...patch } : s,
+          );
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantId ? { ...m, agentSteps: pendingSteps } : m,
+            ),
+          );
+        }
+      };
 
       while (true) {
         const { done, value } = await reader.read();
@@ -296,6 +373,24 @@ export default function App() {
                         : m,
                     ),
                   );
+                } else if (eventName === "step_start") {
+                  // v2.0 PR#4:Agent 循环轮次标记(无 UI 动作,预留)
+                } else if (eventName === "tool_call") {
+                  // v2.0 PR#4:Agent 工具调用开始 → 追加 running 步骤
+                  const argsSummary = summarizeAgentArgs(parsed.args);
+                  appendStep({
+                    step: parsed.step ?? 0,
+                    name: parsed.name || "tool",
+                    argsSummary,
+                    status: "running",
+                  });
+                } else if (eventName === "tool_result") {
+                  // v2.0 PR#4:工具执行完毕 → 更新对应步骤
+                  updateStep(parsed.step ?? 0, parsed.name || "tool", {
+                    status: parsed.ok ? "ok" : "error",
+                    latencyMs: parsed.latency_ms,
+                    excerpt: parsed.excerpt,
+                  });
                 } else if (eventName === "error") {
                   throw new Error(parsed.message || "AI 调用失败");
                 }
@@ -316,6 +411,13 @@ export default function App() {
         const clarification = isClarify
           ? { original_question: text }
           : undefined;
+        // v2.0 PR#4:Agent 元信息(run_id/步数/工具/用量/budget_exhausted)
+        const agentMeta: AgentMeta | undefined = agentMode
+          ? {
+              ...(finalAnswer.agent || {}),
+              budget_exhausted: !!finalAnswer.budget_exhausted,
+            }
+          : undefined;
         setMessages((prev) =>
           prev.map((m) =>
             m.id === assistantId
@@ -327,6 +429,8 @@ export default function App() {
                   time: formatTime(new Date()),
                   isStreaming: false,
                   clarification,
+                  agentMeta,
+                  agentSteps: pendingSteps.length > 0 ? pendingSteps : undefined,
                 }
               : m,
           ),
@@ -359,7 +463,7 @@ export default function App() {
     } finally {
       setLoading(false);
     }
-  }, [input, loading, currentSessionId, loadSessions]);
+  }, [input, loading, currentSessionId, loadSessions, agentMode]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -597,6 +701,9 @@ export default function App() {
                     lastUserMessage={lastUserBefore?.content}
                     onSkipClarification={handleSkipClarification}
                     onUserReply={(text) => handleSend(text)}
+                    // v2.0 PR#4(T13):Agent 步骤面板
+                    agentSteps={msg.agentSteps}
+                    agentMeta={msg.agentMeta}
                   />
                 );
               })
@@ -652,6 +759,9 @@ export default function App() {
               : null
           }
           onSessionUpdated={loadSessions}
+          // v2.0 PR#4(T13):Agent 模式开关
+          agentMode={agentMode}
+          onAgentModeChange={handleAgentModeChange}
         />
       )}
       {currentPage === "dashboard" && <DashboardPage />}

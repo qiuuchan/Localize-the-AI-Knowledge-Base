@@ -15,13 +15,14 @@
 ## 核心特性
 
 - 💬 **Chat-first 对话**:自建 React 前端 + FastAPI SSE 流式回答,脚注引用知识库来源
+- 🤖 **工具调用 Agent(v2.0)**:多步问题自主拆解为「检索 → 计算 → 作答」工具链,4 个只读工具(kb_search / calculator / get_current_time / web_search),前端步骤面板实时展示每一步工具调用,轨迹落库可审计
 - 🔍 **混合检索**:Qdrant 向量 + SQLite 关键词倒排,RRF 融合 + Cross-Encoder 重排 + 时间加权
 - 📄 **文档解析**:MinerU 解析 PDF/Office,`.docx`/`.xlsx` 有 pandoc/openpyxl 兜底
 - 🧠 **双模型路由**:默认 Qwen-Plus,复杂问题自动切 Qwen-Max,L0→L3 失败互切降级(用户无感知)
 - 🖼️ **多模态**:图片理解(Qwen-VL 描述入库)
 - 🔌 **可携带**:全部数据(`data/` + `vectors/`)在移动硬盘;`stop.bat` 自动备份到电脑硬盘(保留 7 份)
 - 🩺 **自诊断**:`health-full.ps1` 一屏健康度、`disk-alert.ps1` 容量 5 级告警、`/api/debug/retrieval` 检索全链路调试
-- 💰 **成本工程**:`cost-alert.ps1` 月度配额 rollup,超阈值自动阻断付费调用
+- 💰 **成本工程**:`cost-alert.ps1` 月度配额 rollup,超阈值自动阻断付费调用(含 Agent 多步放大成本)
 
 ## 架构
 
@@ -53,10 +54,12 @@ flowchart TB
 
 | 指标 | 数值 |
 |---|---|
-| 后端单元测试 | **300** 个(pytest,37 个测试文件) |
-| 前端测试 | **13** 个(vitest) |
-| RAG 评测集 | **50** 条 golden-QA(评测驱动回归) |
-| API 端点 | **36** 个(11 个路由模块) |
+| 后端单元测试 | **353** 个(pytest,41 个测试文件) |
+| 前端测试 | **18** 个(vitest) |
+| RAG 评测集 | **50** 条 golden-QA(检索回归) |
+| Agent 评测集 | **23** 条 golden-agent(工具选择 + 任务完成) |
+| API 端点 | **39** 个(12 个路由模块) |
+| Agent 工具 | **4** 个只读工具(kb_search / calculator / get_current_time / web_search) |
 | 容器编排 | **5** 容器 docker-compose |
 | 平台支持 | Windows(`.bat`/`.ps1`)+ macOS(`.command`)双平台 |
 
@@ -65,10 +68,10 @@ flowchart TB
 ## 设计决策
 
 - **便携优先**:全部运行时数据在移动硬盘,代码仓库与数据分离;`stop.bat` 负责停服务 + SQLite 落盘 + 自动备份,拔盘前一键完成。
-- **低依赖**:不引入重型框架;后端仅 FastAPI + 少量核心库,检索/重排/降级全部自研,链路每一环可调试、可测试。
-- **降级哲学**:双模型 L0→L3 路由(默认模型失败自动互切),检索有 RRF 融合兜底,解析有 pandoc/openpyxl 兜底 —— 任何单点失效用户都不感知。
-- **评测驱动**:50 条 golden-QA 评测集(`tests/eval/run_eval.py`),RAG 质量改动必须有回归数据支撑。
-- **成本工程**:调用量按日聚合落库,月度配额超阈值自动阻断付费路径,防止非技术用户产生意外账单。
+- **低依赖**:不引入重型框架;后端仅 FastAPI + 少量核心库,检索/重排/降级/Agent 循环全部自研(见 `docs/adr/0002-agent-loop-self-built.md`),链路每一环可调试、可测试。
+- **降级哲学**:双模型 L0→L3 路由(默认模型失败自动互切),检索有 RRF 融合兜底,解析有 pandoc/openpyxl 兜底,Agent 工具失败转 error observation 续跑 —— 任何单点失效用户都不感知。
+- **评测驱动**:50 条 golden-QA(检索)+ 23 条 golden-agent(工具选择/任务完成)双评测集,质量改动必须有回归数据支撑。
+- **成本工程**:调用量按日聚合落库,月度配额超阈值自动阻断付费路径(Agent 多步循环有 max_steps 硬顶 + 预算耗尽收尾),防止非技术用户产生意外账单。
 
 ## 快速开始
 
@@ -81,13 +84,17 @@ flowchart TB
 拔盘前**必须**双击 `stop.bat`(停服务 + SQLite 落盘 + 自动备份)。
 新用户详见 **[QUICKSTART.md](QUICKSTART.md)**(非技术用户向,5 分钟上手)。
 
+### Agent 模式(可选)
+
+设置页「对话模式」打开 **Agent 模式**开关后,多步问题由 Agent 自主拆解:例如「对比去年和今年的会员储值,算出增长率」会依次触发 `kb_search`(检索两次)→ `calculator`(算增长率)→ 作答,每一步工具调用实时显示在回答上方的步骤面板,轨迹存 `agent_runs`/`agent_steps` 表可审计(`GET /api/agent/runs`)。默认关闭,与标准问答双链路并存,可对比效果。
+
 ## 目录结构
 
 ```
 ├── start.bat / stop.bat      # 用户入口(双击)
 ├── version                   # 版本号单一真相源
 ├── docker-compose.yml        # 5 容器编排
-├── backend/                  # FastAPI 后端(api/ 路由 + core/rag/ 检索管线)
+├── backend/                  # FastAPI 后端(api/ 路由 + core/rag/ 检索管线 + core/agent/ 工具调用 Agent)
 ├── frontend/                 # React 18 + Vite(src/ 源码,dist/ 构建产物)
 ├── scripts/                  # PowerShell 5.1 工具链(lib/ 为公共库)
 ├── tests/                    # mock 回归 + unit/ pytest 单测 + integration/ 真集成 + eval/ 评测

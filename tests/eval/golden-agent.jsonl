@@ -1,0 +1,51 @@
+# KB-AI golden-agent 评测集 v1.0(2026-08-27,工单 T14)
+# 格式: {"question": "...", "expect_tools": ["kb_search", ...], "expect_keywords": [...], "category": "..."}
+# 判定(见 run_agent_eval.py):
+#   - 工具选择: 实际 tools_used ⊇ expect_tools(子集关系,允许模型多调)
+#   - 任务完成: answer 非空 且 expect_keywords 全部命中(answer 子串)
+#   - expect_keywords 为空 = 只要求 answer 非空(如 web_search / time 类)
+# 5 类: kb_only / calc_only / time_only / multi_step_calc / web_fallback
+# 私有仓保持「示例海鲜酒楼」原名;公开版由 sanitizer 统一替换为「示例海鲜酒楼」。
+
+# ══════════════════════════════════════════════════════════
+# category: kb_only (8 条) — 纯知识库检索,单次工具调用即可回答
+# ══════════════════════════════════════════════════════════
+{"question": "示例海鲜酒楼的会员卡等级有哪些？", "expect_tools": ["kb_search"], "expect_keywords": ["会员卡"], "category": "kb_only"}
+{"question": "示例海鲜酒楼各部门配合时间表里门店调研安排在哪一天？", "expect_tools": ["kb_search"], "expect_keywords": ["调研"], "category": "kb_only"}
+{"question": "仪表盘里的客户健康值是怎么计算的？", "expect_tools": ["kb_search"], "expect_keywords": ["健康值"], "category": "kb_only"}
+{"question": "吾享H5链接和小程序路径有哪些？", "expect_tools": ["kb_search"], "expect_keywords": ["H5"], "category": "kb_only"}
+{"question": "易订运营项目进度表里各阶段的时间节点是什么？", "expect_tools": ["kb_search"], "expect_keywords": ["阶段"], "category": "kb_only"}
+{"question": "企业微信和个人微信相比有什么优势？", "expect_tools": ["kb_search"], "expect_keywords": ["企业微信"], "category": "kb_only"}
+{"question": "商超AI短视频矩阵获客方案的三阶段实施节奏是什么？", "expect_tools": ["kb_search"], "expect_keywords": ["短视频"], "category": "kb_only"}
+{"question": "15期线下教学课件里讲了哪些2025年的新趋势？", "expect_tools": ["kb_search"], "expect_keywords": ["2025"], "category": "kb_only"}
+
+# ══════════════════════════════════════════════════════════
+# category: calc_only (3 条) — 纯算术,不该触发检索
+# ══════════════════════════════════════════════════════════
+{"question": "计算 128 乘以 46 等于多少？", "expect_tools": ["calculator"], "expect_keywords": ["5888"], "category": "calc_only"}
+{"question": "186000 减去 152000 再除以 152000 再乘以 100，结果是多少？", "expect_tools": ["calculator"], "expect_keywords": ["22.37"], "category": "calc_only"}
+{"question": "2 的 10 次方是多少？", "expect_tools": ["calculator"], "expect_keywords": ["1024"], "category": "calc_only"}
+
+# ══════════════════════════════════════════════════════════
+# category: time_only (3 条) — 当前时间/星期,keywords 留空只验工具+answer 非空
+# ══════════════════════════════════════════════════════════
+{"question": "今天是星期几？", "expect_tools": ["get_current_time"], "expect_keywords": [], "category": "time_only"}
+{"question": "今天是什么日期？", "expect_tools": ["get_current_time"], "expect_keywords": [], "category": "time_only"}
+{"question": "现在是几点？", "expect_tools": ["get_current_time"], "expect_keywords": [], "category": "time_only"}
+
+# ══════════════════════════════════════════════════════════
+# category: multi_step_calc (5 条) — 检索出数字后必须用 calculator
+# ══════════════════════════════════════════════════════════
+{"question": "今年会员储值总额比去年增长了多少？", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["%"], "category": "multi_step_calc"}
+{"question": "示例海鲜酒楼各部门配合时间表从项目启动到门店调研间隔了多少天？", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["天"], "category": "multi_step_calc"}
+{"question": "请检索湘味厨房的运营数据，然后计算其毛利率（毛利除以营收再乘以100）", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["%"], "category": "multi_step_calc"}
+{"question": "企业微信服务流程分几个阶段？每个阶段平均要 3 天，总共多少天？", "expect_tools": ["kb_search", "calculator"], "expect_keywords": ["天"], "category": "multi_step_calc"}
+{"question": "商超AI短视频矩阵获客方案的 ROI 测算里，如果预算翻倍，投入产出比数值会变成多少？", "expect_tools": ["kb_search", "calculator"], "expect_keywords": [], "category": "multi_step_calc"}
+
+# ══════════════════════════════════════════════════════════
+# category: web_fallback (4 条) — 知识库无相关内容的实时/外部信息,应转 web_search
+# ══════════════════════════════════════════════════════════
+{"question": "今天深圳有什么餐饮行业相关的新闻？", "expect_tools": ["web_search"], "expect_keywords": [], "category": "web_fallback"}
+{"question": "2026 年餐饮行业的最新政策有哪些？", "expect_tools": ["web_search"], "expect_keywords": [], "category": "web_fallback"}
+{"question": "最近的台风对沿海城市餐饮门店有什么影响？", "expect_tools": ["web_search"], "expect_keywords": [], "category": "web_fallback"}
+{"question": "抖音本地生活 2026 年有什么新玩法？", "expect_tools": ["web_search"], "expect_keywords": [], "category": "web_fallback"}

@@ -1,3 +1,5 @@
+import type { AgentChatRequest, AgentRunSummary } from "./types";
+
 export const API_BASE = window.location.origin + "/api";
 
 export async function getJSON<T>(path: string): Promise<T> {
@@ -156,4 +158,21 @@ export async function updateSessionLimit(
   await patchJSON(`/sessions/${encodeURIComponent(sessionId)}`, {
     history_limit: historyLimit,
   });
+}
+
+// v2.0 PR#4(T13):Agent 模式 SSE 对话 — 返回原始 Response 供调用方
+// 手动 reader 解析(与 App.tsx 现有 /chat 消费模式一致),事件契约见设计稿 §6.1:
+// status / step_start / tool_call / tool_result / answer / error。
+export async function postAgentChat(
+  body: AgentChatRequest,
+): Promise<Response> {
+  return fetch(`${API_BASE}/agent/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchAgentRuns(limit = 20): Promise<AgentRunSummary[]> {
+  return getJSON<AgentRunSummary[]>(`/agent/runs?limit=${limit}`);
 }

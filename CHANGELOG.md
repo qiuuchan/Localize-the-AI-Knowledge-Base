@@ -4,7 +4,50 @@
 > **版本号单一真相源 = 根目录 `version` 文件**(`scripts/version.ps1` 与 `backend/main.py` 均读取它)。
 > v0.7.0 之前的里程碑细节见 `docs/releases/RELEASE-M3.md` / `docs/releases/RELEASE-M3a.md` / `docs/releases/RELEASE-M3b.md`。
 
-## [Unreleased]
+## [2.0.0] - 2026-08-27
+
+> **v2.0.0 = Agent Edition**:工具调用 Agent 全链路(4 工具注册表 + ReAct 循环 + 轨迹落库 + SSE 端点 + 前端步骤面板 + golden-agent 评测)。决策见 ADR-0002(自研 vs LangGraph)。公开仓同步本版本。
+
+### 新增(golden-agent 评测集 + 评测脚本,v2.0 PR#5 / 工单 T14,2026-08-27)
+
+- 新增 `tests/eval/golden-agent.jsonl` 23 条(5 类,注释说明格式与判定):`kb_only` 8 / `calc_only` 3 / `time_only` 3 / `multi_step_calc` 5 / `web_fallback` 4;字段对齐设计稿 §8:`expect_tools`(子集判定:实际 ⊇ 期望)+ `expect_keywords`(answer 子串,空 = 只验非空)
+- 新增 `tests/eval/run_agent_eval.py`:结构化入口 `run_evaluation(base_url, dataset_path, max_steps)` 对齐 `run_eval.py:139`(供 CLI 与未来 `/api/eval` 复用);`_post_agent_chat` 消费 `/api/agent/chat` SSE 六事件聚合 tools_used/answer/steps/tokens/elapsed;指标:工具选择准确率 / 任务完成率 / 平均步数 / p95 延迟 / 每任务 token 成本 + category_stats 分桶;CLI 退出码语义对齐 run_eval.py(0 全过 / 1 有失败或空集 / 2 后端不可达),`--json` 模式供 CI 消费
+- 评测脚本 ruff 全绿;数据集 23 条 ≥ 15(降级线);**首轮真实评测待环境就绪后跑**(缺 `.env`:用户从 `.env.example` 复制填 key 后执行 `backend/.venv/Scripts/python tests/eval/run_agent_eval.py`;23 条 ≈ 40-90 次 LLM 调用,量级几毛~几元,报告落 `docs/eval/` 进 T20 简历弹药)
+
+### 新增(web_search 工具化 + 前端 Agent 步骤面板,v2.0 PR#4 / 工单 T13,2026-08-27)
+
+- `backend/core/agent/tools.py` 新增第 4 工具 **`web_search`**:复用 `scripts/websearch.ps1` 通道(Tavily → Bing),正确参数名 `-Query` + `-OutputJson`,timeout 30s(设计稿 §11 风险 #3);任何失败(脚本缺失/超时/非零退出/无结果)转 error observation 或 `ok:false`,绝不抛断循环;ctx 用「第 N 条」措辞而非 `[N]`,避免与 kb_search 的 citations 角标体系混淆;`execute_tool` 增加 keyword-only `kb_offset` 透传
+- **发现 #1 修复(citation 跨调用编号错位)**:`format_chunks_only` 新增可选参数 `start_index`(默认 1,零回归);`_kb_search` 按 `kb_offset`(已聚合 citation 数)续编全局角标,回填模型的 observation 与聚合 citations 同号 —— 多轮检索后模型 `[N]` 引用与前端脚注不再错位;`loop.py` 聚合处由「二次平移」简化为直接 extend(observation 已全局编号)
+- 前端:**`types.ts`** 加 `AgentStep`/`AgentMeta`/`AgentChatRequest`/`AgentRunSummary` 类型 + `Message.agentSteps/agentMeta`;**`api.ts`** 加 `postAgentChat`(返回 Response 供手动 SSE 解析)与 `fetchAgentRuns`;**新增** `components/AgentStepsPanel.tsx`(可折叠面板:工具名/参数摘要/耗时/成功·失败·运行中色点/结果摘要,≤3 条默认展开,budget_exhausted 黄色提示条);`MessageBubble` 集成面板(气泡顶部);`App.tsx` Agent 模式开关(localStorage 持久化,默认关走旧 `/api/chat`,打开走 `/api/agent/chat`)+ SSE 六事件消费(step_start/tool_call/tool_result 实时累积步骤,answer 落 citations/agentMeta);`SettingsPage` 新增「对话模式」卡片 + toggle 开关;`global.css` 增补面板与开关样式(暗黑赛博:绿/红/熔岩橙)
+- 新增 `frontend/src/__tests__/AgentStepsPanel.test.tsx` 5 测(卡片渲染含参数/耗时、失败态、budget_exhausted 提示条、折叠交互、空步骤不渲染)
+- 存量修复:`tests/unit/test_agent_tools.py` 原「web_search 为未知工具」断言改为不存在工具名;补 web_search 8 测(成功通道参数断言/缺 query/脚本缺失/超时/非零退出/空结果/永不抛)+ kb offset 2 测;`test_agent_loop.py` citation 连续编号测试适配新契约(断言 loop 传 kb_offset + observation 全局编号)
+- 环境回归修复(ruff 0.16.4 升级):新增根 `ruff.toml` 把既有 lint 策略(select E/F/W)显式化到全仓,消除无配置目录落入新版默认规则集的存量噪音;存量 `tests/integration/` 4 处 W292/F401(文件尾换行/未使用 import)顺手修复,规则选择未变更
+- pytest 344 → 353(+9);vitest 13 → 18(+5);eslint 0 errors(31 warnings 均存量);vite build 通过;run-checks 4/4 全绿
+
+### 新增(Agent 轨迹落库 + /api/agent/* 端点,v2.0 PR#3 / 工单 T12,2026-08-26)
+
+- 新增 `backend/core/sqlite/agent_repo.py`(第 6 个 repo,注册进 `_REPOS`,`init_db` core/migrate 自动覆盖):`agent_runs` + `agent_steps` 两表(设计稿 §5 契约)+ `idx_agent_steps_run` 索引;`init_schema`/`migrate` 幂等;CRUD:`create_run` / `finish_run`(status/steps_count/tools_used JSON/model/total_in/total_out/finished_at)/ `get_run` / `list_runs`(倒序 limit 钳位 1–100)/ `add_step`(截断规则在 repo 层强制:tool_args ≤1000、observation ≤2000)/ `get_run_steps`
+- 新增 `backend/core/agent/trajectory.py` 三门面函数 `start_run` / `record_step` / `finish_run`:全部吞错不阻断主链(对齐 llm.py 吞错哲学);finish_reason→status 映射(completed/no_action→done,budget_exhausted/repeat_guard→budget_exhausted,error→error);已接线进 `run_agent()`(run 开始建行、tool_call/tool_result/answer 逐步落行、终态收尾;失败静默跳过)
+- `backend/api/agent.py` 三端点:**POST `/api/agent/chat`**(SSE:status(agent_start)/step_start/tool_call/tool_result/answer/error;cost-alert level≥3 阻断复用 chat.py:136-171 模式含降级事件记录;answer 事件带 `agent:{run_id,steps,tools_used,total_in,total_out}` 嵌套契约;max_steps pydantic ge=1 le=16 越界 422)+ **GET `/api/agent/runs`** + **GET `/api/agent/runs/{id}`**(404 语义);`main.py` 注册路由
+- 新增 `tests/unit/test_agent_repo.py` 6 测(幂等/往返/finish 更新/截断规则/排序/limit)+ `tests/unit/test_agent_api.py` 7 测(max_steps 边界 1/16 过、0/17 → 422、SSE 序列契约、cost-alert 阻断不触 run_agent、runs 列表、明细含 steps 与 404)
+- pytest 331 → 344(+13);ruff(backend/ruff.toml 配置)全绿
+
+### 新增(Agent 循环 + LLM tools 扩展,v2.0 PR#2 / 工单 T11,2026-08-26)
+
+- `backend/core/rag/llm.py` 最小侵入扩展:HTTP 层抽为 `_send_chat_request`(tools/tool_choice 非空时写入请求体;`_post_chat` 契约与返回不变);新增 `_extract_tool_calls`(tool_calls 归一化,T09:arguments 为 JSON 字符串由调用方二次解析)+ `_post_chat_with_tools()`(返回 content/tool_calls/usage/finish_reason,`finish_reason="tool_calls"` 时 content 为空串不按文本解析)+ `chat_with_fallback_tools()`(复刻 L0→L3 降级链与降级事件,usage 照常走 `_log_token_usage`;返回 `(content, tool_calls, model_used, model_reason, usage)`);既有函数签名与 `chat_stream_with_fallback` 未动
+- 新增 `backend/core/agent/loop.py`:`run_agent()` ReAct 生成器 —— max_steps 默认 8(env `AGENT_MAX_STEPS` 覆盖,钳位 1–16);observation 截断 2000 字符以 `role="tool"`+`tool_call_id` 回填;相同 (name,args) 连续 2 次 → repeat_guard 强制收尾;预算耗尽 → 无 tools 再调一次收尾回答(`budget_exhausted=true`);模型无 tool_calls 且无 content → 记 `agent_no_action` 降级事件;kb_search citations 跨步连续编号聚合;yield 事件:step_start / tool_call / tool_result / answer / error
+- 新增 `tests/unit/test_agent_loop.py` 12 测(全 mock LLM 不触网):单步直答、两步工具链(assistant tool_calls 回传 + 观测回填)、预算耗尽收尾、重复调用强制收尾、工具异常续跑、arguments 解析失败回退、no_action 降级、env 覆盖与钳位、usage 累计、citations 连续编号、history 截断、LLM 全链失败 error 事件
+- 存量修复:`tests/unit/test_health_degraded.py` / `tests/unit/test_ps_runner_skipped.py` 文件尾补换行(ruff W292,ruff 0.16 门禁报错阻断 run-checks)
+- pytest 319 → 331(+12);ruff(backend/ruff.toml 配置)全绿
+
+### 新增(Agent 工具注册表,v2.0 PR#1 / 工单 T10,2026-08-26)
+
+- 新增 `backend/core/agent/` 包(`__init__.py` + `tools.py`):OpenAI function calling 工具注册表 `TOOLS`(kb_search / calculator / get_current_time 三个只读工具,schema description 中文写明「何时该用/不该用」,通用知识库措辞无行业身份)+ 分发器 `execute_tool(name, args)`(永不抛异常,失败一律转 `{"error": ...}` observation 供循环续跑;args 兼容 dict 与 DashScope `tool_calls` 的 JSON 字符串形态)
+- `kb_search`:包 `retriever.retrieve()`(top_k 钳位 1–20)+ `format_chunks_only()`;空结果返回 `note` 提示而非 error
+- `calculator`:`ast.parse(mode="eval")` 节点白名单求值 —— 仅允许数字 Constant / 四则·幂·取余 BinOp / 正负号 UnaryOp;拒绝名称、调用、属性、字符串常量、无穷大常量;表达式 ≤200 字符;Pow 指数上限 1000 防资源耗尽;除零/溢出转 error observation
+- `get_current_time`:本地 ISO 时间 + 星期 + 日期
+- 新增 `tests/unit/test_agent_tools.py` 15 测:schema 结构合法性、执行器齐全性、calculator 白名单(拒 `__import__` 注入/属性访问/字符串常量/超长/除零)、时间格式、kb_search mock retriever 包装与失败降级
+- pytest 304 → 319(+15);ruff 全绿
 
 ### 变更(公开版脱敏准备,T01)
 
