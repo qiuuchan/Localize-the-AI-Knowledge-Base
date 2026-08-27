@@ -88,6 +88,20 @@ flowchart TB
 
 设置页「对话模式」打开 **Agent 模式**开关后,多步问题由 Agent 自主拆解:例如「对比去年和今年的会员储值,算出增长率」会依次触发 `kb_search`(检索两次)→ `calculator`(算增长率)→ 作答,每一步工具调用实时显示在回答上方的步骤面板,轨迹存 `agent_runs`/`agent_steps` 表可审计(`GET /api/agent/runs`)。默认关闭,与标准问答双链路并存,可对比效果。
 
+### 作为 MCP Server 使用(可选)
+
+KB-AI 的 `kb_search` 检索能力可暴露为标准 **MCP(Model Context Protocol)工具**,供任意 MCP client(Claude Desktop / Cursor / 自研 Agent)调用 —— 知识库即插即用:
+
+```bash
+# 1. 启动 KB-AI 后端(start.bat 或 uvicorn)
+# 2. 装依赖(仅 mcp SDK,薄代理零 backend 依赖)
+pip install -r mcp_server/requirements.txt
+# 3. 在 MCP client 配置里注册(stdio transport):
+#    "mcpServers": {"kb-ai": {"command": "<python>", "args": ["<仓库>/mcp_server/server.py"]}}
+```
+
+client 侧即可调用 `kb_search(query, top_k=5)`,返回带编号的检索片段(来源/摘要);后端不可达时返回明确错误说明,不抛断。后端地址可用 `KB_AI_BASE_URL` 环境变量覆盖。详见 `mcp_server/server.py`。
+
 ## 目录结构
 
 ```
@@ -97,6 +111,7 @@ flowchart TB
 ├── backend/                  # FastAPI 后端(api/ 路由 + core/rag/ 检索管线 + core/agent/ 工具调用 Agent)
 ├── frontend/                 # React 18 + Vite(src/ 源码,dist/ 构建产物)
 ├── scripts/                  # PowerShell 5.1 工具链(lib/ 为公共库)
+├── mcp_server/               # MCP Server(kb_search 工具,stdio transport,可选)
 ├── tests/                    # mock 回归 + unit/ pytest 单测 + integration/ 真集成 + eval/ 评测
 ├── docs/                     # 用户与工程文档
 ├── design-system/            # 前端设计规范

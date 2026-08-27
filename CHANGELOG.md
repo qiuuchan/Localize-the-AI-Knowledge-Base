@@ -15,6 +15,12 @@
 - `docs/career/interview-faq.md`(T22+T23):10 题 FAQ(含 LangGraph 概念速学对比:StateGraph/checkpointer/生态 3 差异并入第 1 题)+ 3 条备用口径
 - sanitizer 增强:`EXCLUDE` 支持目录前缀(尾斜杠)排除,`docs/career/` 不进公开树(修复:原集合减法只匹配精确路径)
 
+### 新增(MCP Server 暴露 kb_search,工单 T24 · stretch,2026-08-27)
+
+- 新增 `mcp_server/`:官方 Python SDK(mcp 2.x,`MCPServer`)实现 —— `kb_search` 工具经 stdio transport 暴露给任意 MCP client(Claude Desktop/Cursor/自研 Agent);**薄 HTTP 代理设计**(内部调后端 `/api/debug/retrieval`,复用检索/降级/计量全链路,零 backend 代码依赖,仅 mcp SDK + 标准库);`KB_AI_BASE_URL` 环境变量可配;后端不可达/未命中均返回明确说明不抛错
+- README 新增「作为 MCP Server 使用」节(注册配置示例 + 目录结构加 mcp_server/)
+- 验收:stdio client 实测 `kb_search("示例海鲜酒楼会员卡等级有哪些")` 返回真实检索片段;ruff 全绿
+
 ### 新增(golden-agent 评测集 + 评测脚本,v2.0 PR#5 / 工单 T14,2026-08-27)
 
 - 新增 `tests/eval/golden-agent.jsonl` 23 条(5 类,注释说明格式与判定):`kb_only` 8 / `calc_only` 3 / `time_only` 3 / `multi_step_calc` 5 / `web_fallback` 4;字段对齐设计稿 §8:`expect_tools`(子集判定:实际 ⊇ 期望)+ `expect_keywords`(answer 子串,空 = 只验非空)
