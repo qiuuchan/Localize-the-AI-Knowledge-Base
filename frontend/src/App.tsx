@@ -373,6 +373,24 @@ export default function App() {
                         : m,
                     ),
                   );
+                } else if (eventName === "answer_delta") {
+                  // v2.1.0:Agent 答案 token 级流式 — 与 /chat 的 draft 同样
+                  // 逐段追加到气泡;answer 事件仍是权威终态,以其覆盖。
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId
+                        ? { ...m, content: m.content + (parsed.delta || "") }
+                        : m,
+                    ),
+                  );
+                } else if (eventName === "answer_reset") {
+                  // v2.1.0:模型流出部分内容后又决定调工具 — 半截答案作废,
+                  // 清空已显示内容,等待后续步骤或重新流式。
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantId ? { ...m, content: "" } : m,
+                    ),
+                  );
                 } else if (eventName === "step_start") {
                   // v2.0 PR#4:Agent 循环轮次标记(无 UI 动作,预留)
                 } else if (eventName === "tool_call") {

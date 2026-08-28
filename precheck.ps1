@@ -244,7 +244,7 @@ if (-not $Quiet) {
         Write-LogHost "    [不通过] 您的电脑目前跑不了 KB-AI" -ForegroundColor Red
         Write-LogHost ""
         Write-LogHost "    建议:" -ForegroundColor Yellow
-        Write-LogHost "      1. 拍这一屏照片发微信给发盘人" -ForegroundColor Gray
+        Write-LogHost "      1. 截屏记录后查看 logs/ 启动日志" -ForegroundColor Gray
         Write-LogHost "      2. 让发盘人远程协助(ToDesk)或在 BIOS / 系统设置里修复" -ForegroundColor Gray
         Write-LogHost "      3. 如果是 CPU 虚拟化或 S Mode,可能需要懂电脑的人到现场修" -ForegroundColor Gray
     } else {

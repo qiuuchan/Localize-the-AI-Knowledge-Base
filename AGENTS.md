@@ -12,6 +12,8 @@ KB-AI 是一个**本地化、低依赖、个人用**的 AI 知识库,**目标用
 
 **架构跃迁(2026-07-13~16)**:PS 单体 `chat.ps1` → FastAPI + RAG Python 模块 + React 前端双层架构。
 
+**求职主线(2026-08 起,最高优先级)**:本项目同时是**求职 Agent 应用开发岗(中大厂)的主力展示项目**。求职弹药全部在 `docs/career/`(简历 bullet 定稿 / STAR 故事 ×6 / 面试 FAQ ×10 / JD 对照表),公开门面 = GitHub 公开仓(经 `tmp/sanitize/sanitize_public.py` 脱敏管线生成,评测报告已公开)。改代码时注意:公开仓会同步你改的一切 —— 系统提示词/文档措辞保持「示例海鲜酒楼」虚构叙事,勿写入求职措辞与真实客户信息。
+
 ---
 
 ## 1. 文件地图(必读清单)
@@ -353,6 +355,7 @@ pwsh -File scripts/install-hooks.ps1
 
 | 日期 | 版本 | 关键变更 |
 |---|---|---|
+| 2026-08-28 | **v2.1.0** | **Streaming & Hardening(minor)**:①Agent 答案 token 级流式 —— `llm.py` 新增 `_post_chat_stream_with_tools`(tool_calls 分片按 index 聚合)+ `chat_with_fallback_tools_stream`(流式 L0→L3,已 yield delta 后失败不静默重试);`loop.py` `stream` 参数 + `answer_delta`/`answer_reset` 事件(收尾 `_wrap_up` 同样流式);前端 App.tsx 消费;②prompt injection 加固 —— kb/web observation 包 `<kb_context>`/`<web_context>` 分隔符 + 双系统提示词「数据非指令」声明;③修复 chat.py websearch 降级从未生效的存量 bug(`-Question`→`-Query` + 读 `results[]`);④`_AGENT_SYSTEM_PROMPT` 禁止心算强化(golden-agent multi_step_calc 失分根因);⑤test_retrieval_quality 环境泄漏隔离(.env RERANK_TOP_N);⑥公开仓作品集化 —— `docs/eval/` 移出 sanitizer 排除、README 重写(Agent 主线 + 隐私声明 + 版本修正)、新增 `docs/REVIEW-GUIDE.md` 面试官导览、sanitizer 增交付物流泛化规则;pytest 353→**371**(+18:test_agent_stream 8 + test_llm_stream_tools 5 + test_agent_tools 4 + 检索隔离 1)、ruff/vitest/build 全绿 |
 | 2026-08-27 | **v2.0.0** | **Agent Edition(minor · 新能力)**:工具调用 Agent 全链路落地 —— 6 PR 收官(**PR#1** `agent/tools.py` 3 工具(kb_search/calculator/get_current_time);**PR#2** `llm.py` tools 扩展 + `agent/loop.py` ReAct 循环(复刻 L0→L3 降级);**PR#3** `agent_repo` 轨迹落库 + `/api/agent/*` 三端点(SSE 六事件 + cost-alert 阻断);**PR#4** `web_search` 工具 + 前端 AgentStepsPanel + 设置页 Agent 模式开关 + citation 全局编号修复;**PR#5** golden-agent 评测集 23 条 + `run_agent_eval.py`;**PR#6** 收口:version→2.0.0 + ADR-0002(自研 vs LangGraph));pytest 344→353、vitest 13→18、run-checks 4/4;公开仓同步 + `v2.0.0` tag(ADR-0002 详见 `docs/adr/0002-agent-loop-self-built.md`) |
 | 2026-07-13 | v0.7.1~0.7.2 | 健康度体检全面修复;Hybrid Search 实现 |
 | 2026-07-13 | v0.8.0 | FastAPI 后端包装层实现 |

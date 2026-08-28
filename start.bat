@@ -14,7 +14,7 @@ REM   - [3/8] Docker Desktop 未装时自动从 tools\DockerDesktopInstaller.exe
 REM   - [4/8] .env 占位符检查用 /B 行首匹配,避开注释里的 "PLEASE-FILL-IN" 误命中
 REM   - [5/8] WAL 文件检测,提示上次未正常退出(不阻断)
 REM   - [6/8] 浏览器只开 1 次(去掉 3 次重试,避免多标签页打扰客户)
-REM   - [7/8] 错误提示不再引用 "客户支持卡"(项目不附带),改为让客户拍照发微信
+REM   - [7/8] 错误提示不再引用 "客户支持卡"(项目不附带),改为引导查看启动日志
 REM ====================================================================
 
 REM 中文编码兼容 Windows cmd
@@ -194,7 +194,7 @@ if !wait_count! gtr 18 (
     echo [错误] Docker Desktop 启动超时 · 90 秒,请检查: >> "%LOG_FILE%" & echo [错误] Docker Desktop 启动超时 · 90 秒,请检查:
     echo    1. 电脑是否已重启? 首次安装 Docker 需要重启一次 >> "%LOG_FILE%" & echo    1. 电脑是否已重启? 首次安装 Docker 需要重启一次
     echo    2. WSL 2 是否已启用? 控制面板 → 程序 → 启用或关闭 Windows 功能 >> "%LOG_FILE%" & echo    2. WSL 2 是否已启用? 控制面板 → 程序 → 启用或关闭 Windows 功能
-    echo    拍照这一屏发微信给发盘人 >> "%LOG_FILE%" & echo    拍照这一屏发微信给发盘人
+    echo    截屏记录后查看 logs/ 启动日志 >> "%LOG_FILE%" & echo    截屏记录后查看 logs/ 启动日志
     echo. >> "%LOG_FILE%"
     pause
     exit /b 1
@@ -370,7 +370,7 @@ echo. >> "%LOG_FILE%"
 echo    关闭服务: 双击 stop.bat >> "%LOG_FILE%" & echo    关闭服务: 双击 stop.bat
 echo    安全弹出 U 盘: 先停服务,然后右下角弹出 USB >> "%LOG_FILE%" & echo    安全弹出 U 盘: 先停服务,然后右下角弹出 USB
 echo. >> "%LOG_FILE%"
-echo    故障排查: 拍照这一屏发微信给发盘人 + 看 E:\logs\start-*.log >> "%LOG_FILE%" & echo    故障排查: 拍照这一屏发微信给发盘人 + 看 E:\logs\start-*.log
+echo    故障排查: 截屏记录后查看 logs/ 启动日志 + 看 E:\logs\start-*.log >> "%LOG_FILE%" & echo    故障排查: 截屏记录后查看 logs/ 启动日志 + 看 E:\logs\start-*.log
 echo ============================================================ >> "%LOG_FILE%" & echo ============================================================
 echo. >> "%LOG_FILE%"
 timeout /t 5 /nobreak >nul

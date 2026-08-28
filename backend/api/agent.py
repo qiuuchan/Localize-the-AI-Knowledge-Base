@@ -38,6 +38,9 @@ class AgentChatRequest(BaseModel):
     history_limit: int = Field(default=50, ge=1, le=100)
     model_name: Optional[str] = Field(default=None)
     model_name_max: Optional[str] = Field(default=None)
+    # v2.1.0:token 级流式(answer_delta/answer_reset 事件,answer 仍为权威
+    # 终态)。评测脚本等需要整段契约的调用方可显式传 false 回退 v2.0 行为。
+    stream: bool = Field(default=True)
 
 
 async def _agent_events(payload: AgentChatRequest) -> AsyncIterator[Dict[str, Any]]:
@@ -105,6 +108,7 @@ async def _agent_events(payload: AgentChatRequest) -> AsyncIterator[Dict[str, An
                 history_limit=payload.history_limit,
                 model_name=payload.model_name,
                 model_name_max=payload.model_name_max,
+                stream=payload.stream,
             ):
                 loop.call_soon_threadsafe(queue.put_nowait, ("event", ev))
             loop.call_soon_threadsafe(queue.put_nowait, ("done", None))

@@ -1,28 +1,27 @@
-# KB-AI · 便携式本地 AI 知识库
+# KB-AI · 便携式本地 AI 知识库(Agent Edition)
 
-> **一句话定位**:跑在 USB 移动硬盘上的**本地化、低依赖、单用户** AI 知识库 —— 插上电脑双击 `start.bat` 即可用,数据全部留在本地,不依赖任何云端存储。
+> **一句话定位**:跑在 USB 移动硬盘上的**本地化、低依赖、单用户** AI 知识库 —— 插上电脑双击 `start.bat` 即可用,数据全部留在本地。LLM 走阿里云百炼 API,检索与数据全部留在本地,不依赖任何云端存储。
 >
-> 为一位**非技术用户**(餐饮分公司总经理)真实交付并日常使用;Windows / macOS 双平台支持。**当前版本**:见根目录 `version` 文件(v1.7.0)。
+> **当前版本**:见根目录 `version` 文件(单一真相源)。Windows / macOS 双平台;基于一次真实的单用户交付构建并日常使用(已获授权,企业/人物信息已脱敏为虚构示例,见下方「隐私与脱敏」)。
 
 ---
 
 ## 为什么做这个
 
-市面上的知识库产品要么强绑定云端、要么部署门槛高。KB-AI 的取舍是:**把复杂度压进工程,把简单留给用户** —— 非技术用户插上 U 盘双击就能用。整套系统只有 5 个 Docker 容器 + 一个 FastAPI 后端 + 一个 React 前端,LLM 能力走阿里云百炼 API,检索与数据全部留在本地。
-
----
+市面上的知识库产品要么强绑定云端、要么部署门槛高。KB-AI 的取舍是:**把复杂度压进工程,把简单留给用户** —— 非技术用户插上 U 盘双击就能用。整套系统只有 5 个 Docker 容器 + 一个 FastAPI 后端 + 一个 React 前端,检索与数据全部留在本地。
 
 ## 核心特性
 
-- 💬 **Chat-first 对话**:自建 React 前端 + FastAPI SSE 流式回答,脚注引用知识库来源
-- 🤖 **工具调用 Agent(v2.0)**:多步问题自主拆解为「检索 → 计算 → 作答」工具链,4 个只读工具(kb_search / calculator / get_current_time / web_search),前端步骤面板实时展示每一步工具调用,轨迹落库可审计
-- 🔍 **混合检索**:Qdrant 向量 + SQLite 关键词倒排,RRF 融合 + Cross-Encoder 重排 + 时间加权
-- 📄 **文档解析**:MinerU 解析 PDF/Office,`.docx`/`.xlsx` 有 pandoc/openpyxl 兜底
-- 🧠 **双模型路由**:默认 Qwen-Plus,复杂问题自动切 Qwen-Max,L0→L3 失败互切降级(用户无感知)
-- 🖼️ **多模态**:图片理解(Qwen-VL 描述入库)
-- 🔌 **可携带**:全部数据(`data/` + `vectors/`)在移动硬盘;`stop.bat` 自动备份到电脑硬盘(保留 7 份)
-- 🩺 **自诊断**:`health-full.ps1` 一屏健康度、`disk-alert.ps1` 容量 5 级告警、`/api/debug/retrieval` 检索全链路调试
-- 💰 **成本工程**:`cost-alert.ps1` 月度配额 rollup,超阈值自动阻断付费调用(含 Agent 多步放大成本)
+- 🤖 **工具调用 Agent(自研,零框架)**:多步问题自主拆解为「检索 → 计算 → 作答」工具链,4 个只读工具(kb_search / calculator / get_current_time / web_search),OpenAI function calling JSON Schema 注册;~280 行生成器 ReAct 循环(决策见 [ADR-0002](docs/adr/0002-agent-loop-self-built.md)),前端步骤面板实时展示每一步,轨迹落库可审计(`GET /api/agent/runs`)
+- ⚡ **Agent 答案 token 级流式(v2.1.0)**:流式 L0→L3 降级链,最终回答逐 token 下发(`answer_delta`),`answer` 事件仍为权威终态;「流式中途模型决定调工具」以 `answer_reset` 契约处理,首字延迟与普通对话同级
+- 🛡️ **prompt injection 加固(v2.1.0)**:工具 observation 包 `<kb_context>` / `<web_context>` 显式分隔符 + 系统提示词「数据非指令」声明,双层防护检索/联网内容的指令注入
+- 🔍 **混合检索**:Qdrant 向量 + SQLite 关键词倒排,RRF 融合 + Cross-Encoder 重排 + 时间加权;单腿故障自动降级 vector_only / keyword_only 并写诊断
+- 📄 **文档解析**:MinerU 解析 PDF/Office,`.docx`/`.xlsx` 有 pandoc/openpyxl 兜底;Markdown 标题感知分块(保护代码围栏/表格)
+- 🧠 **双模型路由**:默认 Qwen-Plus,复杂问题自动切 Qwen-Max,L0→L3 失败互切降级(用户无感知,降级全程落台账)
+- 🔌 **MCP Server**:kb_search 检索能力经 stdio transport 暴露为标准 MCP 工具,Claude Desktop / Cursor 即插即用
+- 📊 **评测驱动**:50 条 golden-QA(检索回归)+ 23 条 golden-agent(工具选择/任务完成,真实评测 [87%,报告](docs/eval/2026-08-27-golden-agent-report.md))
+- 💰 **成本工程**:调用量按日落库,月度配额三级阈值,超限自动阻断付费路径(Agent 多步循环 max_steps 硬顶 + 预算耗尽收尾)
+- 🩺 **可观测**:降级台账(degradation_events)、Agent 轨迹(每步 latency/token)、`/api/debug/retrieval` 检索全链路调试、8 个 PowerShell 观测工具
 
 ## 架构
 
@@ -54,24 +53,33 @@ flowchart TB
 
 | 指标 | 数值 |
 |---|---|
-| 后端单元测试 | **353** 个(pytest,41 个测试文件) |
+| 后端单元测试 | **371** 个(pytest,44 个测试文件) |
 | 前端测试 | **18** 个(vitest) |
-| RAG 评测集 | **50** 条 golden-QA(检索回归) |
-| Agent 评测集 | **23** 条 golden-agent(工具选择 + 任务完成) |
+| golden-agent 真实评测 | **87%** 工具选择/任务完成(23 条,含方差区间与弱点分析) |
+| golden-QA 检索评测集 | **50** 条(召回回归,不调 LLM) |
 | API 端点 | **39** 个(12 个路由模块) |
-| Agent 工具 | **4** 个只读工具(kb_search / calculator / get_current_time / web_search) |
+| Agent 工具 | **4** 个只读工具(JSON Schema 注册,AST 沙箱计算器) |
 | 容器编排 | **5** 容器 docker-compose |
 | 平台支持 | Windows(`.bat`/`.ps1`)+ macOS(`.command`)双平台 |
 
-> 另有多组 PowerShell mock 回归脚本(`tests/test_*.ps1`),无需 Docker 即可跑核心链路冒烟。
+> 另有多组 PowerShell mock 回归脚本(`tests/test_*.ps1`),无需 Docker 即可跑核心链路冒烟;GitHub Actions CI 跑 ruff + pytest + eslint + vite build。
+
+## 面试官 / 评审快速导览
+
+只看 5 分钟,建议按此路径:[评审导览](docs/REVIEW-GUIDE.md) → [Agent 自研决策 ADR-0002](docs/adr/0002-agent-loop-self-built.md) → [golden-agent 评测报告](docs/eval/2026-08-27-golden-agent-report.md) → 源码 [`core/agent/loop.py`](backend/core/agent/loop.py)。
 
 ## 设计决策
 
 - **便携优先**:全部运行时数据在移动硬盘,代码仓库与数据分离;`stop.bat` 负责停服务 + SQLite 落盘 + 自动备份,拔盘前一键完成。
-- **低依赖**:不引入重型框架;后端仅 FastAPI + 少量核心库,检索/重排/降级/Agent 循环全部自研(见 `docs/adr/0002-agent-loop-self-built.md`),链路每一环可调试、可测试。
+- **低依赖 / 自研有度**:后端仅 FastAPI + 少量核心库;检索/重排/降级/Agent 循环全部自研(见 [ADR-0002](docs/adr/0002-agent-loop-self-built.md):为什么不用 LangGraph),链路每一环可调试、可测试。
 - **降级哲学**:双模型 L0→L3 路由(默认模型失败自动互切),检索有 RRF 融合兜底,解析有 pandoc/openpyxl 兜底,Agent 工具失败转 error observation 续跑 —— 任何单点失效用户都不感知。
-- **评测驱动**:50 条 golden-QA(检索)+ 23 条 golden-agent(工具选择/任务完成)双评测集,质量改动必须有回归数据支撑。
+- **评测驱动**:50 条 golden-QA(检索)+ 23 条 golden-agent(工具选择/任务完成)双评测集,质量改动必须有回归数据支撑;评测报告如实记录采样方差与失败模式。
 - **成本工程**:调用量按日聚合落库,月度配额超阈值自动阻断付费路径(Agent 多步循环有 max_steps 硬顶 + 预算耗尽收尾),防止非技术用户产生意外账单。
+- **隐私工程**:真实交付数据不出私有仓;公开版由脱敏管线生成(`git ls-files` 精确清单 + 有序替换规则 + 目标树全量自检,敏感模式 0 命中)。
+
+## 隐私与脱敏
+
+本项目源于一次真实的单用户交付(非技术用户的知识库日常使用场景),已获授权开源为作品集。所有涉及真实企业/人物的信息已脱敏:业务名替换为虚构示例「示例海鲜酒楼」,交付数据(`data/`、`vectors/`)与客户文档不进公开仓,公开目录树由脱敏管线自动生成并通过敏感模式自检。
 
 ## 快速开始
 
@@ -86,7 +94,7 @@ flowchart TB
 
 ### Agent 模式(可选)
 
-设置页「对话模式」打开 **Agent 模式**开关后,多步问题由 Agent 自主拆解:例如「对比去年和今年的会员储值,算出增长率」会依次触发 `kb_search`(检索两次)→ `calculator`(算增长率)→ 作答,每一步工具调用实时显示在回答上方的步骤面板,轨迹存 `agent_runs`/`agent_steps` 表可审计(`GET /api/agent/runs`)。默认关闭,与标准问答双链路并存,可对比效果。
+设置页「对话模式」打开 **Agent 模式**开关后,多步问题由 Agent 自主拆解:例如「对比去年和今年的会员储值,算出增长率」会依次触发 `kb_search`(检索两次)→ `calculator`(算增长率)→ 作答,每一步工具调用实时显示在回答上方的步骤面板,**最终回答逐 token 流式输出**(v2.1.0),轨迹存 `agent_runs`/`agent_steps` 表可审计(`GET /api/agent/runs`)。默认关闭,与标准问答双链路并存,可对比效果。
 
 ### 作为 MCP Server 使用(可选)
 
@@ -113,7 +121,7 @@ client 侧即可调用 `kb_search(query, top_k=5)`,返回带编号的检索片�
 ├── scripts/                  # PowerShell 5.1 工具链(lib/ 为公共库)
 ├── mcp_server/               # MCP Server(kb_search 工具,stdio transport,可选)
 ├── tests/                    # mock 回归 + unit/ pytest 单测 + integration/ 真集成 + eval/ 评测
-├── docs/                     # 用户与工程文档
+├── docs/                     # 用户与工程文档(adr/ 决策记录,eval/ 评测报告,REVIEW-GUIDE 评审导览)
 ├── design-system/            # 前端设计规范
 ├── data/ vectors/            # 运行时数据(git 已忽略)
 └── AGENTS.md                 # AI agent 上下文恢复手册(跨对话必读)
@@ -153,6 +161,8 @@ cd frontend && npm run lint         # eslint(见 package.json)
 backend/.venv/Scripts/python -m ruff check backend/
 # RAG 检索回归评测(需后端运行;详见 tests/eval/README.md)
 backend/.venv/Scripts/python tests/eval/run_eval.py
+# Agent 评测(需后端运行 + 真实 API Key)
+backend/.venv/Scripts/python tests/eval/run_agent_eval.py --base-url http://127.0.0.1:8000 --json
 ```
 
 ## 数据备份与恢复
@@ -171,6 +181,7 @@ backend/.venv/Scripts/python tests/eval/run_eval.py
 | 文档 | 读者 |
 |---|---|
 | [QUICKSTART.md](QUICKSTART.md) | 终端用户(非技术) |
+| [docs/REVIEW-GUIDE.md](docs/REVIEW-GUIDE.md) | 面试官 / 评审(5 分钟导览) |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | 故障排查(用户 + 工程师) |
 | [docs/product-manual.md](docs/product-manual.md) | 产品手册 |
 | [docs/safe-eject.md](docs/safe-eject.md) | 安全弹出专项 |

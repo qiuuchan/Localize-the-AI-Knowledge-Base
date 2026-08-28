@@ -101,11 +101,31 @@ def test_explicit_disable_rerank_wins_for_long_query():
     assert _effective_rerank_top_n(0, profile) == 0
 
 
-def test_normal_profile_keeps_configured_rerank_top_n():
+def test_normal_profile_keeps_configured_rerank_top_n(monkeypatch):
+    """默认 rerank 候选数;显式 RERANK_TOP_N env 覆盖。
+
+    v2.1.0 隔离加固:本测试此前依赖「.env 未设 RERANK_TOP_N」——CI 无 .env
+    时为绿,但真实交付环境 .env 里 RERANK_TOP_N=20 会让它必红。现用
+    monkeypatch 清掉 env 与 .env 读取,行为只由函数默认值决定。
+    """
+    monkeypatch.delenv("RERANK_TOP_N", raising=False)
+    monkeypatch.setattr(
+        retriever, "get_env_or_env_var", lambda name: "" if name == "RERANK_TOP_N" else None
+    )
     profile = build_query_profile("门店进度")
 
     assert _effective_rerank_top_n(None, profile) == 10
     assert _effective_rerank_top_n(7, profile) == 7
+
+
+def test_env_rerank_top_n_overrides_default(monkeypatch):
+    """RERANK_TOP_N env(如交付 .env 里的 20)应覆盖默认 10。"""
+    monkeypatch.setattr(
+        retriever, "get_env_or_env_var", lambda name: "20" if name == "RERANK_TOP_N" else None
+    )
+    profile = build_query_profile("门店进度")
+
+    assert _effective_rerank_top_n(None, profile) == 20
 
 
 def test_finish_retrieval_passes_compressed_query_to_reranker(monkeypatch):

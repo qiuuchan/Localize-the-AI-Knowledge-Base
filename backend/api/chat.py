@@ -101,6 +101,11 @@ async def _maybe_websearch(query: str) -> Optional[Dict[str, str]]:
     v0.8.11(Task 5):移除未使用的 threshold 参数;阈值判断统一在
     _all_below_threshold() 中完成,函数本身只关心"是否需要联网 + 拿到内容"。
 
+    v2.1.0:修复自 T13 起从未生效的降级——旧实现传 `-Question`(脚本实际
+    参数是 -Query,PowerShell 报错退出)且读 `content` 字段(脚本 JSON 契约
+    是 results[]),导致该分支恒返回 None。现与 tools._web_search 同源:
+    -Query + -OutputJson,拼接 title/url/snippet 文本。
+
     This is the only place the chat endpoint still touches PowerShell — it's a
     pre-existing fallback that goal-scope explicitly leaves alone.
     """
@@ -116,7 +121,7 @@ async def _maybe_websearch(query: str) -> Optional[Dict[str, str]]:
             None,
             lambda: run_ps(
                 script,
-                args=["-Question", query],
+                args=["-Query", query, "-OutputJson"],
                 cwd=root,
                 timeout=60,
             ),
@@ -126,11 +131,16 @@ async def _maybe_websearch(query: str) -> Optional[Dict[str, str]]:
     if result.get("returncode") != 0:
         return None
     payload = result.get("json") or {}
-    text = payload.get("content") or ""
-    source = payload.get("source") or "web"
-    if not text:
+    results = payload.get("results") or []
+    if not results:
         return None
-    return {"text": text, "source": source}
+    lines = []
+    for i, r in enumerate(results, start=1):
+        title = (r.get("title") or "").strip()
+        url = (r.get("url") or "").strip()
+        snippet = (r.get("snippet") or "").strip()
+        lines.append(f"第{i}条: {title}\n来源: {url}\n摘要: {snippet}")
+    return {"text": "\n\n".join(lines), "source": payload.get("source") or "web"}
 
 
 async def _chat_events(payload: ChatRequest) -> AsyncIterator[Dict[str, Any]]:

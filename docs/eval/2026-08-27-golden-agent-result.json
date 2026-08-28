@@ -1,0 +1,513 @@
+{
+  "dataset": "tests/eval/golden-agent.jsonl",
+  "total": 23,
+  "passed": 20,
+  "failed": 3,
+  "pass_rate": 0.8696,
+  "duration_seconds": 454.45,
+  "results": [
+    {
+      "question": "示例海鲜酒楼的会员卡等级有哪些？",
+      "expect_tools": [
+        "kb_search"
+      ],
+      "expect_keywords": [
+        "会员卡"
+      ],
+      "category": "kb_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 15899.35,
+      "tools_used": [
+        "kb_search"
+      ],
+      "steps": 2,
+      "total_in": 2967,
+      "total_out": 581,
+      "answer_preview": "示例海鲜酒楼的会员卡共分为四个等级，由低到高依次为：**青铜卡、白银卡、黄金卡、黑金卡**[2]。\n\n不同等级在权益与权益分值上有所区别：\n- **健康值权重**：在客户健康值计算中，各等级对应的分值分别为黑金卡 100 分、黄金卡 80 分、"
+    },
+    {
+      "question": "示例海鲜酒楼各部门配合时间表里门店调研安排在哪一天？",
+      "expect_tools": [
+        "kb_search"
+      ],
+      "expect_keywords": [
+        "调研"
+      ],
+      "category": "kb_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 9649.15,
+      "tools_used": [
+        "kb_search"
+      ],
+      "steps": 2,
+      "total_in": 3095,
+      "total_out": 208,
+      "answer_preview": "根据示例海鲜酒楼各部门配合时间表，门店调研（含问卷与现场访谈）安排在 **9月10日**，由市场部负责[1][2]。"
+    },
+    {
+      "question": "仪表盘里的客户健康值是怎么计算的？",
+      "expect_tools": [
+        "kb_search"
+      ],
+      "expect_keywords": [
+        "健康值"
+      ],
+      "category": "kb_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 37245.98,
+      "tools_used": [
+        "kb_search"
+      ],
+      "steps": 2,
+      "total_in": 3127,
+      "total_out": 1800,
+      "answer_preview": "根据知识库资料，仪表盘中的**客户健康值**是衡量会员活跃度的综合指标，取值范围为 **0-100** [1]。其计算采用加权求和的方式，具体规则如下 [2]：\n\n**计算公式**\n健康值 = 近 90 天消费频次权重 (**40%**) "
+    },
+    {
+      "question": "吾享H5链接和小程序路径有哪些？",
+      "expect_tools": [
+        "kb_search"
+      ],
+      "expect_keywords": [
+        "H5"
+      ],
+      "category": "kb_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 13114.01,
+      "tools_used": [
+        "kb_search"
+      ],
+      "steps": 2,
+      "total_in": 2844,
+      "total_out": 420,
+      "answer_preview": "根据知识库检索，吾享点餐系统的访问入口如下：\n\n- **H5 链接**：`https://wx.xxhb.example.com/h5/order`\n- **小程序**：在微信搜索“**吾享点餐**”小程序，或直接扫描门店张贴的桌贴二维码进"
+    },
+    {
+      "question": "易订运营项目进度表里各阶段的时间节点是什么？",
+      "expect_tools": [
+        "kb_search"
+      ],
+      "expect_keywords": [
+        "阶段"
+      ],
+      "category": "kb_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 18502.87,
+      "tools_used": [
+        "kb_search"
+      ],
+      "steps": 3,
+      "total_in": 6167,
+      "total_out": 398,
+      "answer_preview": "根据知识库资料，易订运营项目共分为四个阶段，各阶段时间节点及主要工作如下 [10]：\n\n| 阶段 | 时间节点 | 主要工作 |\n|---|---|---|\n| **第一阶段：冷启动** | 2026年7月 | 门店入驻、菜单上传、基础配置"
+    },
+    {
+      "question": "企业微信和个人微信相比有什么优势？",
+      "expect_tools": [
+        "kb_search"
+      ],
+      "expect_keywords": [
+        "企业微信"
+      ],
+      "category": "kb_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 20633.67,
+      "tools_used": [
+        "kb_search"
+      ],
+      "steps": 2,
+      "total_in": 3057,
+      "total_out": 844,
+      "answer_preview": "根据内部资料，企业微信相较于个人微信在私域运营和企业管理方面主要有以下优势 [1][2]：\n\n1.  **好友容量更高**\n    *   企业微信单账号的好友上限可达 **5 万**，而个人微信通常限制在 **5 千** 左右 [1]。\n"
+    },
+    {
+      "question": "商超AI短视频矩阵获客方案的三阶段实施节奏是什么？",
+      "expect_tools": [
+        "kb_search"
+      ],
+      "expect_keywords": [
+        "短视频"
+      ],
+      "category": "kb_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 17421.35,
+      "tools_used": [
+        "kb_search"
+      ],
+      "steps": 2,
+      "total_in": 3135,
+      "total_out": 669,
+      "answer_preview": "根据《商超AI短视频矩阵获客方案》[1]，该方案的三阶段实施节奏如下：\n\n1. **冷启动阶段（第 1-2 周）**：搭建 10 个账号矩阵，利用 AI 批量产出 200 条种草视频。\n2. **规模阶段（第 3-4 周）**：投流放大，对"
+    },
+    {
+      "question": "15期线下教学课件里讲了哪些2025年的新趋势？",
+      "expect_tools": [
+        "kb_search"
+      ],
+      "expect_keywords": [
+        "2025"
+      ],
+      "category": "kb_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 10102.67,
+      "tools_used": [
+        "kb_search"
+      ],
+      "steps": 2,
+      "total_in": 3118,
+      "total_out": 256,
+      "answer_preview": "根据知识库资料，15期线下教学课件中提到的2025年新趋势主要包括以下三个方向[1]：\n\n1. **AI工具应用**\n2. **私域精细化运营**\n3. **健康菜单创新**\n\n课件要求门店在上述三个方向上投入资源，以适应新一年的市场变化。"
+    },
+    {
+      "question": "计算 128 乘以 46 等于多少？",
+      "expect_tools": [
+        "calculator"
+      ],
+      "expect_keywords": [
+        "5888"
+      ],
+      "category": "calc_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 7132.61,
+      "tools_used": [
+        "calculator"
+      ],
+      "steps": 2,
+      "total_in": 1935,
+      "total_out": 324,
+      "answer_preview": "128 乘以 46 等于 5888。"
+    },
+    {
+      "question": "186000 减去 152000 再除以 152000 再乘以 100，结果是多少？",
+      "expect_tools": [
+        "calculator"
+      ],
+      "expect_keywords": [
+        "22.37"
+      ],
+      "category": "calc_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 5362.55,
+      "tools_used": [
+        "calculator"
+      ],
+      "steps": 2,
+      "total_in": 2035,
+      "total_out": 222,
+      "answer_preview": "计算结果约为 **22.37**（精确值为 22.36842105263158）。"
+    },
+    {
+      "question": "2 的 10 次方是多少？",
+      "expect_tools": [
+        "calculator"
+      ],
+      "expect_keywords": [
+        "1024"
+      ],
+      "category": "calc_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 3740.31,
+      "tools_used": [
+        "calculator"
+      ],
+      "steps": 2,
+      "total_in": 1925,
+      "total_out": 142,
+      "answer_preview": "2 的 10 次方是 1024。"
+    },
+    {
+      "question": "今天是星期几？",
+      "expect_tools": [
+        "get_current_time"
+      ],
+      "expect_keywords": [],
+      "category": "time_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 2609.91,
+      "tools_used": [
+        "get_current_time"
+      ],
+      "steps": 2,
+      "total_in": 1922,
+      "total_out": 71,
+      "answer_preview": "今天是星期四。"
+    },
+    {
+      "question": "今天是什么日期？",
+      "expect_tools": [
+        "get_current_time"
+      ],
+      "expect_keywords": [],
+      "category": "time_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 3317.43,
+      "tools_used": [
+        "get_current_time"
+      ],
+      "steps": 2,
+      "total_in": 1922,
+      "total_out": 100,
+      "answer_preview": "今天是2026年8月27日，星期四。"
+    },
+    {
+      "question": "现在是几点？",
+      "expect_tools": [
+        "get_current_time"
+      ],
+      "expect_keywords": [],
+      "category": "time_only",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 3268.88,
+      "tools_used": [
+        "get_current_time"
+      ],
+      "steps": 2,
+      "total_in": 1920,
+      "total_out": 116,
+      "answer_preview": "现在是2026年8月27日星期四，20点29分。"
+    },
+    {
+      "question": "请检索今年和去年的会员储值总额，然后用计算器算出今年比去年增长的百分比是多少",
+      "expect_tools": [
+        "kb_search",
+        "calculator"
+      ],
+      "expect_keywords": [
+        "%"
+      ],
+      "category": "multi_step_calc",
+      "ok": false,
+      "detail": "未调用期望工具: ['calculator'](实际: ['get_current_time', 'kb_search'])",
+      "elapsed_ms": 70198.58,
+      "tools_used": [
+        "get_current_time",
+        "kb_search"
+      ],
+      "steps": 8,
+      "total_in": 38949,
+      "total_out": 1826,
+      "answer_preview": "经检索知识库中的《会员储值数据对比2025-2026.md》等相关文件，资料中未直接列出 2025 年和 2026 年的具体会员储值总额，因此无法为您使用计算器重新核算。\n\n但根据现有资料，文档已直接给出明确的计算结论：**2026 年会员"
+    },
+    {
+      "question": "请检索各部门配合时间表里项目启动日和门店调研日的日期，然后用计算器算出两者之间间隔了多少天",
+      "expect_tools": [
+        "kb_search",
+        "calculator"
+      ],
+      "expect_keywords": [
+        "天"
+      ],
+      "category": "multi_step_calc",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 24838.7,
+      "tools_used": [
+        "kb_search",
+        "calculator"
+      ],
+      "steps": 3,
+      "total_in": 5385,
+      "total_out": 1035,
+      "answer_preview": "根据《各部门配合时间表-示例海鲜酒楼.md》资料显示：\n*   **项目启动日**：9月1日 [1]\n*   **门店调研日**：9月10日 [1]\n\n两者在同月内间隔天数为：10 - 1 = **9 天** [2]。"
+    },
+    {
+      "question": "请检索湘味厨房的运营数据，然后计算其毛利率（毛利除以营收再乘以100）",
+      "expect_tools": [
+        "kb_search",
+        "calculator"
+      ],
+      "expect_keywords": [
+        "%"
+      ],
+      "category": "multi_step_calc",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 17344.89,
+      "tools_used": [
+        "kb_search",
+        "calculator"
+      ],
+      "steps": 3,
+      "total_in": 5464,
+      "total_out": 638,
+      "answer_preview": "根据知识库检索到的《2046湘味厨房运营数据》资料 [1]，湘味厨房的运营数据如下：\n*   **营业收入**：1,200,000 元\n*   **毛利额**：450,000 元\n\n按公式计算毛利率：\n450,000 ÷ 1,200,000"
+    },
+    {
+      "question": "企业微信服务流程分几个阶段？每个阶段平均要 3 天，总共多少天？",
+      "expect_tools": [
+        "kb_search",
+        "calculator"
+      ],
+      "expect_keywords": [
+        "天"
+      ],
+      "category": "multi_step_calc",
+      "ok": false,
+      "detail": "未调用期望工具: ['calculator'](实际: ['kb_search'])",
+      "elapsed_ms": 13675.93,
+      "tools_used": [
+        "kb_search"
+      ],
+      "steps": 2,
+      "total_in": 3067,
+      "total_out": 440,
+      "answer_preview": "根据内部资料，企业微信服务流程分为 **四个阶段**[1]：\n\n1. **客户添加**（企微二维码/渠道活码）\n2. **客户打标签**（来源/意向/等级）\n3. **触达运营**（欢迎语 + 标签群发 + 朋友圈）\n4. **转化复购**"
+    },
+    {
+      "question": "请检索短视频矩阵方案的 ROI 测算数据，然后用计算器算出预算翻倍后的投入产出比是多少",
+      "expect_tools": [
+        "kb_search",
+        "calculator"
+      ],
+      "expect_keywords": [],
+      "category": "multi_step_calc",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 21165.98,
+      "tools_used": [
+        "kb_search",
+        "calculator"
+      ],
+      "steps": 3,
+      "total_in": 5515,
+      "total_out": 870,
+      "answer_preview": "根据知识库资料，短视频矩阵方案的基准测算数据如下：\n* **单条视频制作成本**：20 元 [2]\n* **单个到店客户获客成本**：15 元 [2]\n* **客户平均消费**：120 元 [2]\n* **基准 ROI**：120 / 15"
+    },
+    {
+      "question": "今天深圳有什么餐饮行业相关的新闻？",
+      "expect_tools": [
+        "web_search"
+      ],
+      "expect_keywords": [],
+      "category": "web_fallback",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 14568.83,
+      "tools_used": [
+        "web_search"
+      ],
+      "steps": 3,
+      "total_in": 2990,
+      "total_out": 636,
+      "answer_preview": "抱歉，当前联网搜索功能暂时未能返回深圳餐饮行业的最新新闻结果。这可能是由于网络接口暂时不可用或查询未匹配到公开内容。\n\n如果您需要了解的是**企业内部**的餐饮业务动态、经营数据或相关政策，我可以帮您检索本地知识库。请告诉我更具体的方向（例"
+    },
+    {
+      "question": "2026 年餐饮行业的最新政策有哪些？",
+      "expect_tools": [
+        "web_search"
+      ],
+      "expect_keywords": [],
+      "category": "web_fallback",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 35783.28,
+      "tools_used": [
+        "web_search",
+        "get_current_time"
+      ],
+      "steps": 3,
+      "total_in": 3150,
+      "total_out": 1908,
+      "answer_preview": "根据联网检索结果，目前未能获取到 2026 年餐饮行业的最新政策信息。由于当前时间是 2026 年 8 月 27 日，相关政策可能涉及食品安全、餐饮服务标准、税收优惠或环保要求等方面。\n\n如需了解具体政策内容，建议您查阅国家市场监管总局、商"
+    },
+    {
+      "question": "最近的台风对沿海城市餐饮门店有什么影响？",
+      "expect_tools": [
+        "web_search"
+      ],
+      "expect_keywords": [],
+      "category": "web_fallback",
+      "ok": true,
+      "detail": "ok",
+      "elapsed_ms": 35319.93,
+      "tools_used": [
+        "get_current_time",
+        "kb_search",
+        "web_search"
+      ],
+      "steps": 3,
+      "total_in": 5318,
+      "total_out": 1612,
+      "answer_preview": "知识库及公开网络中暂未检索到关于**2026年8月近期台风**对沿海城市餐饮门店影响的具体内部数据或新闻报道。\n\n结合餐饮行业在台风季节（通常为7-9月）的普遍运营规律，台风对沿海城市餐饮门店的影响通常体现在以下几个方面：\n\n1.  **营"
+    },
+    {
+      "question": "抖音本地生活 2026 年有什么新玩法？",
+      "expect_tools": [
+        "web_search"
+      ],
+      "expect_keywords": [],
+      "category": "web_fallback",
+      "ok": false,
+      "detail": "未调用期望工具: ['web_search'](实际: ['get_current_time', 'kb_search'])",
+      "elapsed_ms": 53547.74,
+      "tools_used": [
+        "get_current_time",
+        "kb_search"
+      ],
+      "steps": 3,
+      "total_in": 4172,
+      "total_out": 2464,
+      "answer_preview": "根据内部知识库资料，关于 2026 年的本地生活运营节奏与策略，目前主要参考以下内部规划与趋势延续：\n\n**1. 2026 年运营阶段规划（易订项目）**\n内部进度表明确了 2026 年下半年针对门店/本地生活业务的四阶段运营节奏 [2]："
+    }
+  ],
+  "timestamp": "2026-08-27T12:34:18.664170+00:00",
+  "base_url": "http://127.0.0.1:8000",
+  "max_steps": 8,
+  "category_stats": {
+    "kb_only": {
+      "total": 8,
+      "passed": 8,
+      "failed": 0,
+      "pass_rate": 1.0
+    },
+    "calc_only": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0
+    },
+    "time_only": {
+      "total": 3,
+      "passed": 3,
+      "failed": 0,
+      "pass_rate": 1.0
+    },
+    "multi_step_calc": {
+      "total": 5,
+      "passed": 3,
+      "failed": 2,
+      "pass_rate": 0.6
+    },
+    "web_fallback": {
+      "total": 4,
+      "passed": 3,
+      "failed": 1,
+      "pass_rate": 0.75
+    }
+  },
+  "tools_accuracy": 0.8696,
+  "task_completion_rate": 0.8696,
+  "avg_steps": 2.61,
+  "total_tokens": 130759,
+  "avg_tokens_per_task": 5685.2,
+  "latency_ms": {
+    "count": 23,
+    "p50": 15899.35,
+    "p95": 53547.74,
+    "max": 70198.58
+  }
+}

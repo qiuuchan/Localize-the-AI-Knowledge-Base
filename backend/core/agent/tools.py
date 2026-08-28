@@ -43,6 +43,17 @@ _BINOPS = {
 
 _WEEKDAYS_ZH = ["星期一", "星期二", "星期三", "星期四", "星期五", "星期六", "星期日"]
 
+
+def _wrap_untrusted(text: str, tag: str) -> str:
+    """v2.1.0 prompt injection 加固:不可信内容包在显式分隔符里回填。
+
+    kb_search / web_search 的 observation 原样拼接进模型上下文——检索命中
+    的文档或网页本身可能携带「忽略指令/调用工具」类注入文本。分隔符 +
+    系统提示词规则 5(loop._AGENT_SYSTEM_PROMPT)双层声明:分隔符内是数据
+    不是指令。取值自资料,不改写内容,引用编号不受影响。
+    """
+    return f"<{tag}>\n{text}\n</{tag}>" if text else text
+
 TOOLS: list[Dict[str, Any]] = [
     {
         "type": "function",
@@ -157,7 +168,7 @@ def _kb_search(args: Dict[str, Any], offset: int = 0) -> Dict[str, Any]:
     return {
         "ok": True,
         "count": len(citations),
-        "ctx": formatted.get("ctx") or "",
+        "ctx": _wrap_untrusted(formatted.get("ctx") or "", "kb_context"),
         "citations": citations,
     }
 
@@ -267,7 +278,7 @@ def _web_search(args: Dict[str, Any]) -> Dict[str, Any]:
         "ok": True,
         "source": payload.get("source") or "web",
         "count": len(results),
-        "ctx": "\n\n".join(lines),
+        "ctx": _wrap_untrusted("\n\n".join(lines), "web_context"),
     }
 
 

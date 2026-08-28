@@ -87,7 +87,7 @@ if (-not $SkipPrecheck) {
     if ($LASTEXITCODE -ne 0) {
         Write-LogHost ""
         Write-LogHost "   [错误] 预检未通过,KB-AI 启动中止" -ForegroundColor Red
-        Write-LogHost "   看上方预检输出 + 拍照发微信给发盘人" -ForegroundColor Yellow
+        Write-LogHost "   看上方预检输出 + 查看 logs/ 启动日志排查" -ForegroundColor Yellow
         Close-LogFile
         exit 1
     }
@@ -187,7 +187,7 @@ if (-not $dockerReady) {
         Write-LogHost "   排查:" -ForegroundColor Yellow
         Write-LogHost "     1. 电脑是否已重启?首次安装 Docker 需要重启一次" -ForegroundColor Gray
         Write-LogHost "     2. (macOS)系统设置 → 隐私与安全 → 允许 Docker Desktop" -ForegroundColor Gray
-        Write-LogHost "     3. 拍照这一屏发微信给发盘人" -ForegroundColor Gray
+        Write-LogHost "     3. 截屏记录后查看 logs/ 启动日志" -ForegroundColor Gray
         Close-LogFile
         exit 1
     }
@@ -433,7 +433,7 @@ Write-LogHost ""
 Write-LogHost "   关闭服务: 终端跑 stop.ps1(或双击 stop.bat / stop.command)" -ForegroundColor Gray
 Write-LogHost "   安全弹出: 先停服务,然后桌面弹出 USB" -ForegroundColor Gray
 Write-LogHost ""
-Write-LogHost "   故障排查: 拍照这一屏发微信给发盘人 + 看 $RootDir\logs\start-*.log" -ForegroundColor Gray
+Write-LogHost "   故障排查: 截屏记录后查看 logs/ 启动日志 + 看 $RootDir\logs\start-*.log" -ForegroundColor Gray
 Write-LogHost "============================================================" -ForegroundColor Cyan
 Write-LogHost ""
 

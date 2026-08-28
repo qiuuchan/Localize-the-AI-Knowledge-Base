@@ -5,7 +5,7 @@
 #   - 任务完成: answer 非空 且 expect_keywords 全部命中(answer 子串)
 #   - expect_keywords 为空 = 只要求 answer 非空(如 web_search / time 类)
 # 5 类: kb_only / calc_only / time_only / multi_step_calc / web_fallback
-# 私有仓保持「示例海鲜酒楼」原名;公开版由 sanitizer 统一替换为「示例海鲜酒楼」。
+# 数据集统一使用虚构示例品牌;公开版与私有版显示为同一名称「示例海鲜酒楼」。
 
 # ══════════════════════════════════════════════════════════
 # category: kb_only (8 条) — 纯知识库检索,单次工具调用即可回答
