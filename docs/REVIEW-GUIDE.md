@@ -13,7 +13,7 @@ USB 移动硬盘上的本地知识库:5 个 Docker 容器 + FastAPI + React,LLM 
 | ① | [`docs/adr/0002-agent-loop-self-built.md`](adr/0002-agent-loop-self-built.md) | 为什么自研 ReAct 循环而不用 LangGraph —— 5 个权衡点,含依赖面/测试友好/事件协议边界 |
 | ② | [`backend/core/agent/loop.py`](../backend/core/agent/loop.py) | ~370 行生成器实现完整 Agent 循环:max_steps 预算、重复调用护栏、错误转 observation 续跑、token 级流式(`answer_delta`/`answer_reset` 契约)、轨迹落库 |
 | ③ | [`backend/core/agent/tools.py`](../backend/core/agent/tools.py) | OpenAI function calling JSON Schema 工具注册;`calculator` 是 ast 白名单求值(拒 `__import__`/属性访问/溢出);kb/web observation 包 `<kb_context>`/`<web_context>` 分隔符(prompt injection 加固) |
-| ④ | [`docs/eval/2026-08-27-golden-agent-report.md`](eval/2026-08-27-golden-agent-report.md) | 真实 LLM 评测:23 条 golden-agent,87% 工具选择/任务完成,**含采样方差区间、成本核算、失败模式归因**(不是只报好数字) |
+| ④ | [`docs/eval/2026-08-28-golden-agent-v210-report.md`](eval/2026-08-28-golden-agent-v210-report.md) | 真实 LLM 评测:23 条 golden-agent,工具选择 **95.65%**(v2.1.0,v2.0 基线 87% → 95.65%),**含采样方差区间、成本核算、失败模式归因**(不是只报好数字;报告文首链 v2.0 基线报告) |
 | ⑤ | [`backend/core/rag/retriever.py`](../backend/core/rag/retriever.py) | 混合检索:向量腿 + 关键词腿各自隔离容错 → RRF 融合 → cross-encoder 重排 → 时间加权 → 低置信度扩召回;每步可降级、可诊断 |
 
 ## 3. 常见追问 & 直接证据

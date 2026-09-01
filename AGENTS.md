@@ -12,7 +12,7 @@ KB-AI 是一个**本地化、低依赖、个人用**的 AI 知识库,**目标用
 
 **架构跃迁(2026-07-13~16)**:PS 单体 `chat.ps1` → FastAPI + RAG Python 模块 + React 前端双层架构。
 
-**求职主线(2026-08 起,最高优先级)**:本项目同时是**求职 Agent 应用开发岗(中大厂)的主力展示项目**。求职弹药全部在 `docs/career/`(简历 bullet 定稿 / STAR 故事 ×6 / 面试 FAQ ×10 / JD 对照表),公开门面 = GitHub 公开仓(经 `tmp/sanitize/sanitize_public.py` 脱敏管线生成,评测报告已公开)。改代码时注意:公开仓会同步你改的一切 —— 系统提示词/文档措辞保持「示例海鲜酒楼」虚构叙事,勿写入求职措辞与真实客户信息。
+
 
 ---
 
@@ -98,7 +98,7 @@ KB-AI/
 │   ├── adr/                  # ADR 记录(v1.3.0 ADR-0001 sqlite-repo-split)
 │   ├── superpowers/
 │   │   ├── specs/            # 设计文档(2026-07-* 设计稿)
-│   │   └── plans/            # 实施计划(2026-07-* 计划稿)
+│   │   └── plans/            # 实施计划(2026-07-* 计划稿 + 08-25 v2.0 / 09-01 v2.2 工单池)
 │   └── releases/             # v0.7 之前的里程碑(RELEASE-M3*.md)
 ├── dify/
 │   ├── README.md             # v1.3.0 新增,说明 knowledge-pipeline.json 是历史快照

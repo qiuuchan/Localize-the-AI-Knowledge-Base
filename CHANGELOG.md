@@ -6,7 +6,7 @@
 
 ## [2.1.0] - 2026-08-28
 
-> **v2.1.0 = Streaming & Hardening**:Agent 答案 token 级流式 + prompt injection 加固 + websearch 降级修复 + 评测报告公开化。目标:补齐「Agent 应用规模化」维度的高频面试追问区(流式体验/安全/降级验证),公开仓达到"可直接发给面试官"标准。
+> **v2.1.0 = Streaming & Hardening**:Agent 答案 token 级流式 + prompt injection 加固 + websearch 降级修复 + 评测报告公开化。
 
 ### 新增(Agent 答案 token 级流式,v2.0 最大体验缺口)
 
@@ -43,12 +43,7 @@
 
 > **v2.0.0 = Agent Edition**:工具调用 Agent 全链路(4 工具注册表 + ReAct 循环 + 轨迹落库 + SSE 端点 + 前端步骤面板 + golden-agent 评测)。决策见 ADR-0002(自研 vs LangGraph)。公开仓同步本版本。
 
-### 新增(面试弹药 W4,T20-T23,2026-08-27 · 私有仓 docs/career/,sanitizer 排除不进公开仓)
 
-- `docs/career/resume-project.md`(T20):4 条量化简历 bullet(全栈交付/RAG 管线/Agent 循环+评估/可靠性工程)+ BOSS 直聘 120 字精简版 + 数字来源核对表(每数字可现场打开文件自证);golden-agent 评测报告数字待 T14 真实运行后替换占位
-- `docs/career/star-stories.md`(T21):6 个 STAR 故事(双模型路由/成本告警/golden-QA 评测/FMEA 加固/Agent 自研/非技术用户产品化),每个带 文件:行号 证据锚点 + 2 分钟口径 + 串讲建议
-- `docs/career/interview-faq.md`(T22+T23):10 题 FAQ(含 LangGraph 概念速学对比:StateGraph/checkpointer/生态 3 差异并入第 1 题)+ 3 条备用口径
-- sanitizer 增强:`EXCLUDE` 支持目录前缀(尾斜杠)排除,`docs/career/` 不进公开树(修复:原集合减法只匹配精确路径)
 
 ### 新增(MCP Server 暴露 kb_search,工单 T24 · stretch,2026-08-27)
 

@@ -19,7 +19,7 @@
 - 📄 **文档解析**:MinerU 解析 PDF/Office,`.docx`/`.xlsx` 有 pandoc/openpyxl 兜底;Markdown 标题感知分块(保护代码围栏/表格)
 - 🧠 **双模型路由**:默认 Qwen-Plus,复杂问题自动切 Qwen-Max,L0→L3 失败互切降级(用户无感知,降级全程落台账)
 - 🔌 **MCP Server**:kb_search 检索能力经 stdio transport 暴露为标准 MCP 工具,Claude Desktop / Cursor 即插即用
-- 📊 **评测驱动**:50 条 golden-QA(检索回归)+ 23 条 golden-agent(工具选择/任务完成,真实评测 [87%,报告](docs/eval/2026-08-27-golden-agent-report.md))
+- 📊 **评测驱动**:50 条 golden-QA(检索回归)+ 23 条 golden-agent 真实评测(工具选择 **95.65%**,[v2.1.0 报告](docs/eval/2026-08-28-golden-agent-v210-report.md) · [v2.0 基线 87%](docs/eval/2026-08-27-golden-agent-report.md),双报告并陈)
 - 💰 **成本工程**:调用量按日落库,月度配额三级阈值,超限自动阻断付费路径(Agent 多步循环 max_steps 硬顶 + 预算耗尽收尾)
 - 🩺 **可观测**:降级台账(degradation_events)、Agent 轨迹(每步 latency/token)、`/api/debug/retrieval` 检索全链路调试、8 个 PowerShell 观测工具
 
@@ -55,7 +55,7 @@ flowchart TB
 |---|---|
 | 后端单元测试 | **371** 个(pytest,44 个测试文件) |
 | 前端测试 | **18** 个(vitest) |
-| golden-agent 真实评测 | **87%** 工具选择/任务完成(23 条,含方差区间与弱点分析) |
+| golden-agent 真实评测 | **95.65%** 工具选择 / 86.96% 任务完成(23 条 v2.1.0 实测;v2.0 基线 87% → 95.65%,[双报告并陈](docs/eval/2026-08-28-golden-agent-v210-report.md),含采样方差与弱点分析) |
 | golden-QA 检索评测集 | **50** 条(召回回归,不调 LLM) |
 | API 端点 | **39** 个(12 个路由模块) |
 | Agent 工具 | **4** 个只读工具(JSON Schema 注册,AST 沙箱计算器) |
@@ -66,7 +66,7 @@ flowchart TB
 
 ## 面试官 / 评审快速导览
 
-只看 5 分钟,建议按此路径:[评审导览](docs/REVIEW-GUIDE.md) → [Agent 自研决策 ADR-0002](docs/adr/0002-agent-loop-self-built.md) → [golden-agent 评测报告](docs/eval/2026-08-27-golden-agent-report.md) → 源码 [`core/agent/loop.py`](backend/core/agent/loop.py)。
+只看 5 分钟,建议按此路径:[评审导览](docs/REVIEW-GUIDE.md) → [Agent 自研决策 ADR-0002](docs/adr/0002-agent-loop-self-built.md) → [golden-agent 评测报告 v2.1.0](docs/eval/2026-08-28-golden-agent-v210-report.md)([v2.0 基线](docs/eval/2026-08-27-golden-agent-report.md)) → 源码 [`core/agent/loop.py`](backend/core/agent/loop.py)。
 
 ## 设计决策
 
