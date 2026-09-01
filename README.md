@@ -12,14 +12,15 @@
 
 ## 核心特性
 
-- 🤖 **工具调用 Agent(自研,零框架)**:多步问题自主拆解为「检索 → 计算 → 作答」工具链,4 个只读工具(kb_search / calculator / get_current_time / web_search),OpenAI function calling JSON Schema 注册;~280 行生成器 ReAct 循环(决策见 [ADR-0002](docs/adr/0002-agent-loop-self-built.md)),前端步骤面板实时展示每一步,轨迹落库可审计(`GET /api/agent/runs`)
+- 🤖 **工具调用 Agent(自研,零框架)**:多步问题自主拆解为「检索 → 计算 → 作答」工具链,4 个只读工具(kb_search / calculator / get_current_time / web_search),OpenAI function calling JSON Schema 注册;~440 行生成器 ReAct 循环(决策见 [ADR-0002](docs/adr/0002-agent-loop-self-built.md)),前端步骤面板实时展示每一步,轨迹落库可审计(`GET /api/agent/runs`)
 - ⚡ **Agent 答案 token 级流式(v2.1.0)**:流式 L0→L3 降级链,最终回答逐 token 下发(`answer_delta`),`answer` 事件仍为权威终态;「流式中途模型决定调工具」以 `answer_reset` 契约处理,首字延迟与普通对话同级
 - 🛡️ **prompt injection 加固(v2.1.0)**:工具 observation 包 `<kb_context>` / `<web_context>` 显式分隔符 + 系统提示词「数据非指令」声明,双层防护检索/联网内容的指令注入
 - 🔍 **混合检索**:Qdrant 向量 + SQLite 关键词倒排,RRF 融合 + Cross-Encoder 重排 + 时间加权;单腿故障自动降级 vector_only / keyword_only 并写诊断
 - 📄 **文档解析**:MinerU 解析 PDF/Office,`.docx`/`.xlsx` 有 pandoc/openpyxl 兜底;Markdown 标题感知分块(保护代码围栏/表格)
 - 🧠 **双模型路由**:默认 Qwen-Plus,复杂问题自动切 Qwen-Max,L0→L3 失败互切降级(用户无感知,降级全程落台账)
 - 🔌 **MCP Server**:kb_search 检索能力经 stdio transport 暴露为标准 MCP 工具,Claude Desktop / Cursor 即插即用
-- 📊 **评测驱动**:50 条 golden-QA(检索回归)+ 23 条 golden-agent 真实评测(工具选择 **95.65%**,[v2.1.0 报告](docs/eval/2026-08-28-golden-agent-v210-report.md) · [v2.0 基线 87%](docs/eval/2026-08-27-golden-agent-report.md),双报告并陈)
+- 🧠 **上下文工程(v2.2.0)**:启发式 token 预算(与 cost 计量同源)替代字符预算,多轮历史超阈值自动压缩为滚动摘要并落库(`sessions.summary`),摘要参与后续轮次上下文 —— 为何不做向量记忆见 [ADR-0003](docs/adr/0003-context-engineering.md)
+- 📊 **评测驱动**:50 条 golden-QA(检索回归)+ 23 条 golden-agent 真实评测(工具选择 **95.65%**,[v2.1.0 报告](docs/eval/2026-08-28-golden-agent-v210-report.md) · [v2.0 基线 87%](docs/eval/2026-08-27-golden-agent-report.md),双报告并陈);v2.2 起任务完成率支持 **LLM-as-judge 语义判定**(修复关键词字面口径假阴性)+ 结果落库趋势([双口径对比](docs/eval/2026-09-01-golden-agent-llm-judge-comparison.md))
 - 💰 **成本工程**:调用量按日落库,月度配额三级阈值,超限自动阻断付费路径(Agent 多步循环 max_steps 硬顶 + 预算耗尽收尾)
 - 🩺 **可观测**:降级台账(degradation_events)、Agent 轨迹(每步 latency/token)、`/api/debug/retrieval` 检索全链路调试、8 个 PowerShell 观测工具
 
@@ -53,9 +54,9 @@ flowchart TB
 
 | 指标 | 数值 |
 |---|---|
-| 后端单元测试 | **371** 个(pytest,44 个测试文件) |
+| 后端单元测试 | **411** 个(pytest,46 个测试文件) |
 | 前端测试 | **18** 个(vitest) |
-| golden-agent 真实评测 | **95.65%** 工具选择 / 86.96% 任务完成(23 条 v2.1.0 实测;v2.0 基线 87% → 95.65%,[双报告并陈](docs/eval/2026-08-28-golden-agent-v210-report.md),含采样方差与弱点分析) |
+| golden-agent 真实评测 | **95.65%** 工具选择(v2.1.0 实测;v2.0 基线 87% → 95.65%,[双报告并陈](docs/eval/2026-08-28-golden-agent-v210-report.md),含采样方差与弱点分析);任务完成率 v2.2 起双口径:关键词 23/23 · LLM-judge 22/23([对比报告](docs/eval/2026-09-01-golden-agent-llm-judge-comparison.md),judge 抓出 1 条假阳性) |
 | golden-QA 检索评测集 | **50** 条(召回回归,不调 LLM) |
 | API 端点 | **39** 个(12 个路由模块) |
 | Agent 工具 | **4** 个只读工具(JSON Schema 注册,AST 沙箱计算器) |

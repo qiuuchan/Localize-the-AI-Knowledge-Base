@@ -48,8 +48,8 @@ KB-AI/
 │   │   ├── atomic_io.py      # v0.8.11(P1.3) 原子写工具(借鉴 Yuxi-Know)
 │   │   ├── bulk_assign.py    # v1.1.0 PR#1 批量迁移 + Qdrant payload 重写(治 #11)
 │   │   ├── agent/            # v2.0 工具调用 Agent:tools.py(4 工具注册表 + execute_tool 分发 + kb_offset 全局 citation 编号)+ loop.py(run_agent 生成器:max_steps/repeat_guard/budget 收尾)+ trajectory.py(轨迹门面,吞错不阻断)
-│   │   ├── sqlite/           # v1.3.0 PR#1:6-repo 包拆分 + transaction()(connection + sessions_repo / messages_repo / degradation_repo / databases_repo / tags_repo + v2.0 agent_repo + orchestrator __init__)
-│   │   └── rag/              # chunker/embedder/qdrant_store/keyword_index/mineru/llm/metadata/query_profile/retriever/reranker/query_rewriter/tokenizer
+│   │   ├── sqlite/           # v1.3.0 PR#1:6-repo 包拆分 + transaction()(connection + sessions_repo / messages_repo / degradation_repo / databases_repo / tags_repo + v2.0 agent_repo + v2.2 eval_repo + orchestrator __init__)
+│   │   └── rag/              # chunker/embedder/qdrant_store/keyword_index/mineru/llm/metadata/query_profile/retriever/reranker/query_rewriter/tokenizer + v2.2 token_budget(启发式 token 计量 + 滚动摘要)
 │   ├── requirements.txt      # fastapi/uvicorn/sse-starlette/sentence-transformers
 │   └── requirements-dev.txt  # httpx/pytest
 ├── frontend/                 # v0.8.2+ React 18 + TypeScript + Vite(v0.8.11 加 DashboardPage;v1.3.0 PR#3 加成本告警卡片)
@@ -184,10 +184,10 @@ KB-AI/
 | 类型 | 路径 | 覆盖范围 | 跑法 |
 |---|---|---|---|
 | mock 回归 | `tests/test_m*.ps1` (11 个) | 形式合规,不含真 API | `pwsh -File tests/<test>.ps1` |
-| pytest 单测 | `tests/unit/*.py` (25 个,223 测) | reranker/query_rewriter/retriever_fallback/debug_api/temporal_weighting/rag_core/streaming_extract + v0.8.11 database_crud/atomic_io/degradation_component/dashboard_aggregations + v0.8.12 eval_route/parsed_cache_namespacing + v1.1.0 PR#1 database_cascade/bulk_assign_qdrant + PR#2 limit_guard + PR#3 skip_clarification/image_endpoint + PR#4 tags_api/session_title | `backend/.venv/Scripts/python -m pytest tests/unit/ -v` |
+| pytest 单测 | `tests/unit/*.py` (46 个,411 测) | reranker/query_rewriter/retriever_fallback/debug_api/temporal_weighting/rag_core/streaming_extract + v0.8.11 database_crud/atomic_io/degradation_component/dashboard_aggregations + v0.8.12 eval_route/parsed_cache_namespacing + v1.1.0 PR#1 database_cascade/bulk_assign_qdrant + PR#2 limit_guard + PR#3 skip_clarification/image_endpoint + PR#4 tags_api/session_title + v2.0 agent_tools/agent_loop/agent_trajectory/agent_stream + v2.1 agent_stream/llm_stream_tools + v2.2 token_budget(24)/eval_repo(5)/agent_eval_judge(11) | `backend/.venv/Scripts/python -m pytest tests/unit/ -v` |
 | 容器集成 | `tests/integration/hybrid-search.ps1` | Qdrant + SQLite + Embedding + LLM 全链路 | 需 Docker + 真实 API Key |
 | API 集成 | `tests/integration/api/test_api.py` | health/status/sessions/chat/debug(6 测) | `backend/.venv/Scripts/python -m pytest tests/integration/api/test_api.py -v` |
-| vitest RTL | `frontend/src/__tests__/*.test.tsx` (2 个,10 测) | MessageBubble(7:图片缩略图/多选/跳过反问)+ TagChip(3:readonly/removable/颜色) | `cd frontend && npx vitest run` |
+| vitest RTL | `frontend/src/__tests__/*.test.tsx` (4 个,18 测) | MessageBubble(7:图片缩略图/多选/跳过反问)+ TagChip(3:readonly/removable/颜色)+ v2.0 AgentStepsPanel(5)+ v2.0 SettingsPage Agent 模式(3) | `cd frontend && npx vitest run` |
 | RAG 评测 | `tests/eval/run_eval.py` | `/api/debug/retrieval` 检索质量,golden-qa.jsonl | 见 `tests/eval/README.md` |
 
 **核心风险**:`[ALL PASS]` 只能证明"形式合规",拦不住"实现偏移";凡涉及 chat/embedding/Qdrant 行为,务必读源代码验证。
@@ -355,6 +355,7 @@ pwsh -File scripts/install-hooks.ps1
 
 | 日期 | 版本 | 关键变更 |
 |---|---|---|
+| 2026-09-01 | **v2.2.0** | **Interview Polish(minor · 收口)**:①上下文工程 —— `token_budget.py` 启发式 token 计量 + `condense_history` 滚动摘要(超阈值压缩落库 `sessions.summary`,参与后续轮次上下文;chat 与 agent 双链路受约束)+ ADR-0003(为何不做向量记忆);②评测升级 —— `run_agent_eval.py` 新增 `--judge llm` 语义裁判(解析容错/失败降级关键词口径)+ `eval_repo.py` eval_runs 落库趋势(确定性 run_id 幂等)+ 真实复判 23 条 ¥0.72(judge 22/23 vs 关键词 23/23,抓出 1 条假阳性);③ADR-0004 并发模型评估(量化/选项对比/SaaS 触发线);④投递弹药 —— jd-mapping v2(深圳大厂逐条映射)、FAQ×19(两段式口径)、简历 v3(三维表达)、mock-interview(模拟面试脚本 + 压缩 commit 口径);⑤公开仓卫生 —— sanitizer STRIP 块级剥离 + v210 报告公开;pytest 371→**411**、vitest 18、run-checks 4/4;公开仓 9 压缩 commit + `v2.2.0` tag |
 | 2026-08-28 | **v2.1.0** | **Streaming & Hardening(minor)**:①Agent 答案 token 级流式 —— `llm.py` 新增 `_post_chat_stream_with_tools`(tool_calls 分片按 index 聚合)+ `chat_with_fallback_tools_stream`(流式 L0→L3,已 yield delta 后失败不静默重试);`loop.py` `stream` 参数 + `answer_delta`/`answer_reset` 事件(收尾 `_wrap_up` 同样流式);前端 App.tsx 消费;②prompt injection 加固 —— kb/web observation 包 `<kb_context>`/`<web_context>` 分隔符 + 双系统提示词「数据非指令」声明;③修复 chat.py websearch 降级从未生效的存量 bug(`-Question`→`-Query` + 读 `results[]`);④`_AGENT_SYSTEM_PROMPT` 禁止心算强化(golden-agent multi_step_calc 失分根因);⑤test_retrieval_quality 环境泄漏隔离(.env RERANK_TOP_N);⑥公开仓作品集化 —— `docs/eval/` 移出 sanitizer 排除、README 重写(Agent 主线 + 隐私声明 + 版本修正)、新增 `docs/REVIEW-GUIDE.md` 面试官导览、sanitizer 增交付物流泛化规则;pytest 353→**371**(+18:test_agent_stream 8 + test_llm_stream_tools 5 + test_agent_tools 4 + 检索隔离 1)、ruff/vitest/build 全绿 |
 | 2026-08-27 | **v2.0.0** | **Agent Edition(minor · 新能力)**:工具调用 Agent 全链路落地 —— 6 PR 收官(**PR#1** `agent/tools.py` 3 工具(kb_search/calculator/get_current_time);**PR#2** `llm.py` tools 扩展 + `agent/loop.py` ReAct 循环(复刻 L0→L3 降级);**PR#3** `agent_repo` 轨迹落库 + `/api/agent/*` 三端点(SSE 六事件 + cost-alert 阻断);**PR#4** `web_search` 工具 + 前端 AgentStepsPanel + 设置页 Agent 模式开关 + citation 全局编号修复;**PR#5** golden-agent 评测集 23 条 + `run_agent_eval.py`;**PR#6** 收口:version→2.0.0 + ADR-0002(自研 vs LangGraph));pytest 344→353、vitest 13→18、run-checks 4/4;公开仓同步 + `v2.0.0` tag(ADR-0002 详见 `docs/adr/0002-agent-loop-self-built.md`) |
 | 2026-07-13 | v0.7.1~0.7.2 | 健康度体检全面修复;Hybrid Search 实现 |
