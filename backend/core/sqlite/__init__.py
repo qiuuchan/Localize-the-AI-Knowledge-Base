@@ -10,6 +10,7 @@ repo, e.g. ``from backend.core.sqlite.sessions_repo import create_session`` or
 ``from backend.core.sqlite.connection import get_connection, transaction``.
 
 v2.0 PR#3 adds agent_repo (agent_runs + agent_steps).
+v2.2 T11 adds eval_repo (eval_runs — 评测结果落库趋势).
 """
 from __future__ import annotations
 
@@ -23,6 +24,7 @@ from . import (
     connection,
     databases_repo,
     degradation_repo,
+    eval_repo,
     messages_repo,
     sessions_repo,
     tags_repo,
@@ -42,6 +44,7 @@ _REPOS = [
     databases_repo,
     tags_repo,
     agent_repo,
+    eval_repo,
 ]
 
 

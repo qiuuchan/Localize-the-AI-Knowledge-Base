@@ -94,6 +94,17 @@ async def _agent_events(payload: AgentChatRequest) -> AsyncIterator[Dict[str, An
         except Exception:
             history = []
 
+    # T10(v2.2):读既有滚动摘要,交 run_agent 参与上下文(ADR-0003)。
+    # 超预算时由 run_agent 内部压缩并回写 sessions.summary。
+    summary: Optional[str] = None
+    if payload.session_id:
+        try:
+            from backend.core.sqlite.sessions_repo import get_session_summary
+
+            summary = get_session_summary(payload.session_id)
+        except Exception:
+            summary = None
+
     queue: asyncio.Queue = asyncio.Queue()
     loop = asyncio.get_event_loop()
 
@@ -109,6 +120,7 @@ async def _agent_events(payload: AgentChatRequest) -> AsyncIterator[Dict[str, An
                 model_name=payload.model_name,
                 model_name_max=payload.model_name_max,
                 stream=payload.stream,
+                summary=summary,
             ):
                 loop.call_soon_threadsafe(queue.put_nowait, ("event", ev))
             loop.call_soon_threadsafe(queue.put_nowait, ("done", None))

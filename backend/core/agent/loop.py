@@ -27,6 +27,7 @@ v2.1.0:
 from __future__ import annotations
 
 import json
+import logging
 import os
 import time
 from typing import Any, Dict, Iterator, List, Optional
@@ -39,6 +40,8 @@ from backend.core.rag.llm import (
     select_model,
 )
 from backend.core.sqlite.degradation_repo import save_degradation_event
+
+logger = logging.getLogger("kb_ai.agent.loop")
 
 DEFAULT_MAX_STEPS = 8
 HARD_MAX_STEPS = 16
@@ -123,6 +126,7 @@ def run_agent(
     disable_model_routing: bool = False,
     api_key: Optional[str] = None,
     stream: bool = False,
+    summary: Optional[str] = None,
 ) -> Iterator[Dict[str, Any]]:
     """Yield agent step events until final answer or error.
 
@@ -131,10 +135,31 @@ def run_agent(
     answer_delta 逐 token 下发,answer 事件仍为权威终态(带 citations/agent
     元信息),前端以其覆盖流式缓冲。评测脚本(run_agent_eval.py)按事件 type
     分发,未知事件自然忽略,两种模式都兼容。
+
+    summary(T10/v2.2):会话滚动摘要,渲染为独立 system 消息置于历史之前;
+    历史超 token 预算时在此压缩并落库(ADR-0003,失败不阻断)。
     """
     steps_allowed = _resolve_max_steps(max_steps)
 
+    # T10/v2.2:历史 token 预算约束(ADR-0003)。
+    # 超阈值 → 最近消息保留 + 更早历史压成摘要;摘要追加/截断后落库。
+    if history:
+        try:
+            from backend.core.rag.token_budget import condense_history
+            from backend.core.sqlite.sessions_repo import set_session_summary
+
+            history, summary = condense_history(
+                list(history), existing_summary=summary or ""
+            )
+            if session_id:
+                set_session_summary(session_id, summary)
+        except Exception:
+            # 压缩失败用原始 history;summary 保持传入值,不阻断主链
+            logger.warning("agent history condense failed", exc_info=True)
+
     messages: List[Dict[str, Any]] = [{"role": "system", "content": _AGENT_SYSTEM_PROMPT}]
+    if summary:
+        messages.append({"role": "system", "content": f"[会话摘要]\n{summary}"})
     if history:
         history_limit = max(1, history_limit)
         for h in history[-history_limit:]:

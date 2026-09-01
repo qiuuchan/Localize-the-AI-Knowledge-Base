@@ -813,6 +813,7 @@ def build_messages(
     web_results: Optional[str] = None,
     image_paths: Optional[Sequence[str]] = None,
     vision_only: bool = False,
+    summary: Optional[str] = None,
 ) -> List[Dict[str, Any]]:
     """Construct the messages list to send to Qwen.
 
@@ -824,6 +825,9 @@ def build_messages(
     Defaults to 20 for backward compatibility with callers that pre-date the
     explicit ChatRequest.history_limit field. Values < 1 are clamped to 1 to
     keep at least one history entry (or zero, if history itself is empty).
+
+    summary (T10/v2.2):滚动摘要文本,渲染为 [会话摘要] 段,置于聊天历史之前;
+    None/空串时省略该段。
     """
     history = history or []
     if vision_only and image_paths:
@@ -866,6 +870,8 @@ def build_messages(
         parts.append("[参考资料(知识库)]\n" + "\n\n".join(lines))
     if web_results:
         parts.append("[网络资料]\n" + web_results)
+    if summary:
+        parts.append("[会话摘要]\n" + summary)
     if history:
         h_lines: List[str] = []
         history_limit = max(1, history_limit)

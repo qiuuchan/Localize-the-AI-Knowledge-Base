@@ -4,6 +4,35 @@
 > **版本号单一真相源 = 根目录 `version` 文件**(`scripts/version.ps1` 与 `backend/main.py` 均读取它)。
 > v0.7.0 之前的里程碑细节见 `docs/releases/RELEASE-M3.md` / `docs/releases/RELEASE-M3a.md` / `docs/releases/RELEASE-M3b.md`。
 
+## [2.2.0-dev] - 开发中(v2.2 面试打磨周期,工单池 `docs/superpowers/plans/2026-09-01-v2.2-ticket-pool.md`)
+
+### 新增(T11 评测升级:LLM-as-judge + eval_runs 落库趋势)
+
+- `tests/eval/run_agent_eval.py` 新增 `--judge keyword|llm`(默认 keyword 保持确定性/零成本/CI 可用):llm 模式用 `llm_judge_case` 语义裁判替代关键词字面子串判定,`judge_fn` 可注入(mock/离线复判),judge 调用失败/输出非法自动降级关键词口径(评测不中断);`parse_judge_response` 容错解析(纯 JSON / 代码围栏 / 前后杂文 / 非法降级)
+- 新增 `--input PATH` 离线复判(不重跑 Agent,用已存结果的完整 answer 按任意口径重判)+ `--no-persist` + `--run-id`;v2.2 起评测结果含完整 `answer` 字段(旧版只有 120 字 preview,无法离线复判)
+- 新增 `backend/core/sqlite/eval_repo.py`:`eval_runs` 表(时间/口径/通过率/tools_accuracy/任务完成率/avg_steps/p95/total_tokens/成本/完整 detail JSON),确定性 run_id(`agent-llm-<日期>`)同口径同日幂等覆盖,`list_eval_runs` 支持 kind/mode 过滤趋势查询;注册进 `sqlite/__init__.py` `_REPOS`
+- **真实评测落地(2026-09-01,23 条全量,成本 ≈¥0.72)**:judge 口径任务完成率 22/23(95.65%)vs 同答案关键词口径 23/23(100%)—— 双口径差异 = judge 抓出 1 条 keyword 假阳性(「今天深圳有什么餐饮新闻」回答"未能获取"仍被"非空即过"放行);v210 自标的 2 条「缺 % 字符」假阴性在语义口径下必然判完成(机制确认);judge 23/23 纯 JSON 解析 0 降级;工具选择 22/23 持平 v210 但失败用例不同(采样方差再验证,三轮 87/87/95.65);新盲区:模型直接引用文档现成数值绕过 calculator(v2.2 后候选)
+- 对比报告 `docs/eval/2026-09-01-golden-agent-llm-judge-comparison.md` + 结构化结果 `docs/eval/2026-09-01-golden-agent-llm-judge-result.json`;落库 `eval_runs` `agent-llm-2026-09-01`
+- 单测 +16:`tests/unit/test_agent_eval_judge.py`(parse 容错 5 + judge_fn 注入/异常降级 2 + messages 结构 1 + 复判流程 3)+ `tests/unit/test_eval_repo.py`(schema 幂等/往返/幂等覆盖/趋势过滤/缺失返回 5)
+
+### 新增(T10 上下文工程:token 预算 + 滚动摘要,ADR-0003)
+
+- 新增 `backend/core/rag/token_budget.py`:启发式 token 估算(零新依赖,CJK≈1 token/字符、ASCII≈1 token/4 字符、×1.2 保守系数;与 cost 计量关系 = 预算回答"调用前放多少",cost 回答"调用后花多少",两者不替代)+ `condense_history()` 滚动摘要纯函数(预算内原样 / 超阈值「最近 55% 预算保留 + 更早历史压摘要」/ 至少保留 1 条 / 既有摘要追加截断)+ `heuristic_summary()` 确定性摘要(最近 N 轮一问一答,行级截断);预算默认 6000,env `HISTORY_TOKEN_BUDGET` 可覆盖
+- `sessions` 表新增 `summary` 列(migrate 幂等):摘要落库,参与后续轮次上下文;`sessions_repo` 新增 `get_session_summary` / `set_session_summary`
+- `/api/chat` 历史处理升级:token 预算替代纯条数截断——超阈值压缩出摘要并回写,`build_messages` 新增 `summary` 参数渲染 `[会话摘要]` 段(置于聊天历史之前)
+- `/api/agent/chat` 同受预算约束:`run_agent` 新增 `summary` 参数,历史超预算时压缩 + 回写,摘要渲染为独立 system 消息;`agent.py` 读既有摘要传入
+- 新增 `docs/adr/0003-context-engineering.md`:为什么不做向量记忆(单用户语料规模下 Mem0/Zep 是过度工程)/ 摘要 vs 滑动窗口(信息可恢复性)/ 何时该上 Mem0/Zep(演进路径)
+- 单测 +24:`tests/unit/test_token_budget.py`(计量口径/压缩语义/摘要参与/落库迁移/Agent 预算约束);pytest 371 → 395
+
+### 新增(T11 评测升级:LLM-as-judge + 结果落库趋势)
+
+- `run_agent_eval.py` 新增 `--judge llm` 口径:任务完成判定从关键词字面子串升级为 **LLM 语义裁判**(qwen3.6-plus 单轮调用 + 结构化 JSON 评分 `{"complete","reason"}`;解析容错:剥代码围栏/取 JSON 对象/解析失败确定性降级关键词口径);默认 `keyword` 不变(确定性/零成本/CI 可用)—— 修复 v2.1.0 报告自认的 2 条假阴性(`%` 类符号关键词字面命中,真实能力被口径压低 ~8.7pt)
+- 新增 `--input PATH` 复判模式:读已保存评测结果(含完整 `answer` 字段)不重跑 Agent,仅用指定口径复判任务完成率
+- 评测结果落库 `eval_runs` 表(新增 `backend/core/sqlite/eval_repo.py`,注册进 init_db):时间/口径/通过率/p95/成本/完整 detail,确定性 run_id(同口径同日幂等覆盖)+ 趋势查询;`--no-persist` 可跳过;成本估算按 CostLog-Rotate 同源刊例价
+- 评测结果新增 `answer` 完整字段(原只有 120 字 preview,复判不可用)
+- 新增 `docs/eval/2026-09-01-golden-agent-llm-judge-comparison.md`:关键词 vs judge 双口径对比报告(v210 假阴性确认 + 差异分析)
+- 单测 +16:`tests/unit/test_eval_repo.py`(落库幂等/趋势/反序列化)+ `tests/unit/test_agent_eval_judge.py`(judge 解析容错/注入降级/复判流程);pytest 395 → 411
+
 ## [2.1.0] - 2026-08-28
 
 > **v2.1.0 = Streaming & Hardening**:Agent 答案 token 级流式 + prompt injection 加固 + websearch 降级修复 + 评测报告公开化。

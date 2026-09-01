@@ -212,6 +212,7 @@ async def _chat_events(payload: ChatRequest) -> AsyncIterator[Dict[str, Any]]:
 
     # 1. History
     history: List[Dict[str, Any]] = []
+    summary: str = ""
     if payload.session_id:
         try:
             # v0.8.11(Task 5):历史条数走 payload.history_limit,与 max_tokens 解耦。
@@ -223,6 +224,23 @@ async def _chat_events(payload: ChatRequest) -> AsyncIterator[Dict[str, Any]]:
             history = [{"role": m["role"], "content": m["content"]} for m in msgs]
         except Exception:
             history = []
+
+    # T10(v2.2):token 预算 + 滚动摘要(ADR-0003)。
+    # 历史超阈值时压缩出摘要并落库(参与后续轮次上下文);失败不阻断主链。
+    if history and payload.session_id:
+        try:
+            from backend.core.rag.token_budget import condense_history
+            from backend.core.sqlite.sessions_repo import (
+                get_session_summary,
+                set_session_summary,
+            )
+
+            existing = get_session_summary(payload.session_id) or ""
+            history, summary = condense_history(history, existing_summary=existing)
+            if summary != existing:
+                set_session_summary(payload.session_id, summary)
+        except Exception:
+            logger.warning("history condense failed, using raw history", exc_info=True)
 
     # 2. Retrieve
     # v0.8.11(Task 5):retriever 现在接受 diagnostics dict,把"哪条召回腿失败 /
@@ -318,6 +336,7 @@ async def _chat_events(payload: ChatRequest) -> AsyncIterator[Dict[str, Any]]:
         history=history,
         history_limit=payload.history_limit,
         web_results=web_results,
+        summary=summary,
     )
 
     # 6. Model routing + chat with fallback

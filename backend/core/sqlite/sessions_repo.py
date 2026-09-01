@@ -55,12 +55,22 @@ def migrate(db_path: Optional[Path] = None) -> None:
     """v1.1.0 PR#2: sessions 加 history_limit(REQ-6 50 轮软上限)。
 
     SQLite ALTER TABLE ADD COLUMN 非幂等,需包 try/except 捕 duplicate column。
+
+    T10(v2.2):sessions 加 summary(TEXT,nullable) — 上下文工程滚动摘要落库,
+    参与后续轮次上下文(ADR-0003)。
     """
     conn = get_connection(db_path)
     try:
         try:
             conn.execute(
                 "ALTER TABLE sessions ADD COLUMN history_limit INTEGER NOT NULL DEFAULT 50"
+            )
+        except sqlite3.OperationalError as exc:
+            if "duplicate column" not in str(exc).lower():
+                raise
+        try:
+            conn.execute(
+                "ALTER TABLE sessions ADD COLUMN summary TEXT"
             )
         except sqlite3.OperationalError as exc:
             if "duplicate column" not in str(exc).lower():
@@ -132,6 +142,36 @@ def touch_session(session_id: str) -> None:
         conn.execute(
             "UPDATE sessions SET last_active = ? WHERE session_id = ?",
             (_now_iso(), session_id),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+# ---------------------------------------------------------------------------
+# T10(v2.2):滚动摘要落库(ADR-0003)
+# ---------------------------------------------------------------------------
+
+
+def get_session_summary(
+    session_id: str, db_path: Optional[Path] = None
+) -> Optional[str]:
+    """读会话摘要;会话不存在 / 未生成过摘要返回 None。"""
+    s = get_session(session_id, db_path=db_path)
+    if s is None:
+        return None
+    return s.get("summary") or None
+
+
+def set_session_summary(
+    session_id: str, summary: str, db_path: Optional[Path] = None
+) -> None:
+    """写会话摘要(空串也写,幂等;失败由调用方 try/except 兜底)。"""
+    conn = get_connection(db_path)
+    try:
+        conn.execute(
+            "UPDATE sessions SET summary = ? WHERE session_id = ?",
+            (summary, session_id),
         )
         conn.commit()
     finally:
