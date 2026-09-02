@@ -65,7 +65,7 @@ flowchart TB
 
 > 另有多组 PowerShell mock 回归脚本(`tests/test_*.ps1`),无需 Docker 即可跑核心链路冒烟;GitHub Actions CI 跑 ruff + pytest + eslint + vite build。
 
-## 面试官 / 评审快速导览
+## 评审快速导览
 
 只看 5 分钟,建议按此路径:[评审导览](docs/REVIEW-GUIDE.md) → [Agent 自研决策 ADR-0002](docs/adr/0002-agent-loop-self-built.md) → [golden-agent 评测报告 v2.1.0](docs/eval/2026-08-28-golden-agent-v210-report.md)([v2.0 基线](docs/eval/2026-08-27-golden-agent-report.md)) → 源码 [`core/agent/loop.py`](backend/core/agent/loop.py)。
 
@@ -84,6 +84,8 @@ flowchart TB
 
 ## 快速开始
 
+**终端用户(预置 U 盘镜像)**:
+
 ```bat
 1. 插入移动硬盘
 2. 双击 start.bat        (首次 3-5 分钟加载预置文件,之后 30-60 秒)
@@ -92,6 +94,42 @@ flowchart TB
 
 拔盘前**必须**双击 `stop.bat`(停服务 + SQLite 落盘 + 自动备份)。
 新用户详见 **[QUICKSTART.md](QUICKSTART.md)**(非技术用户向,5 分钟上手)。
+
+### 开发者:从零跑通(clone 党)
+
+公开仓是源码,不含预置 `data/` / `vectors/` 镜像。要跑起来:
+
+```bash
+# 1. 环境变量
+cp .env.example .env        # 填入 ALIYUN_BAILIAN_API_KEY(百炼控制台申请)
+
+# 2. 基础设施(Qdrant 向量库 + Dify 兼容镜像)
+docker compose up -d qdrant
+#   (知识库管理后台 Dify 可选: docker compose up -d;纯 API 检索不需要)
+
+# 3. 后端(自动建 venv + 装依赖,或手动: python -m venv backend/.venv && pip install -r backend/requirements.txt)
+pwsh -File scripts/start-backend.ps1     # uvicorn on 127.0.0.1:8000
+
+# 4. 健康检查
+curl http://127.0.0.1:8000/api/health
+
+# 5. 前端(可选;纯 API 用 Swagger: http://127.0.0.1:8000/docs 即可)
+cd frontend && npm install && npm run dev
+```
+
+跑单测无需 Docker(`start-backend.ps1` 会自动创建 `backend/.venv` 并装依赖;想跳过启动直接建环境可先跑一次它或手动建 venv):
+
+```bash
+# 建 venv + 装依赖(任选其一)
+# 方式 A:先启动一次后端(自动建 venv)
+# 方式 B:手动
+python -m venv backend/.venv
+backend/.venv/Scripts/python -m pip install -r backend/requirements.txt
+# 跑单测
+backend/.venv/Scripts/python -m pytest tests/unit/ -q     # 411 passed
+```
+
+> 说明:`start.bat` 面向"预置好的 U 盘"自动装配(找盘根、建库、起 5 容器);开发者场景按上面分步起即可,`data/`、`vectors/` 会在首次入库时自动创建。
 
 ### Agent 模式(可选)
 
@@ -182,7 +220,7 @@ backend/.venv/Scripts/python tests/eval/run_agent_eval.py --base-url http://127.
 | 文档 | 读者 |
 |---|---|
 | [QUICKSTART.md](QUICKSTART.md) | 终端用户(非技术) |
-| [docs/REVIEW-GUIDE.md](docs/REVIEW-GUIDE.md) | 面试官 / 评审(5 分钟导览) |
+| [docs/REVIEW-GUIDE.md](docs/REVIEW-GUIDE.md) | 评审(5 分钟导览) |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | 故障排查(用户 + 工程师) |
 | [docs/product-manual.md](docs/product-manual.md) | 产品手册 |
 | [docs/safe-eject.md](docs/safe-eject.md) | 安全弹出专项 |

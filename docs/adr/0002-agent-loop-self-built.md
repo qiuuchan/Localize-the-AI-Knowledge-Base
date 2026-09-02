@@ -6,7 +6,7 @@
 | **日期** | 2026-08-27 |
 | **驱动版本** | KB-AI v2.0.0 |
 | **配套 spec** | `docs/superpowers/specs/2026-08-25-v2.0-agent-edition-design.md`(Agent Edition 设计) |
-| **决策工具** | 成本/依赖/控制粒度三维权衡 + 面试口径预演(T23) |
+| **决策工具** | 成本/依赖/控制粒度三维权衡 + 口径论证(T23) |
 | **影响文件** | 新增 `backend/core/agent/`(tools.py / loop.py / trajectory.py)+ `backend/api/agent.py` + `tests/unit/test_agent_*.py`(34 测) |
 
 ---
@@ -44,9 +44,9 @@ v2.0 的循环只有 4 个"小决策":max_steps 预算(硬顶 16)、相同 (name
 
 如果未来要 planner/worker/critic 多 Agent 编排,自研 loop 的 `yield 事件 dict` 协议可以作为编排层的外部契约(LangGraph 届时可替换 loop 内部实现而不动 SSE 契约与轨迹表)。**先做对的事,不为假设的复杂度付钱**(池外清单 §5:多 Agent 编排本周期明确不做)。
 
-### 5. 面试口径(T23 配套)
+### 5. 论证口径(T23 配套)
 
-被问"为什么不用 LangGraph"时的标准回答:**"知道框架能做什么(StateGraph/checkpointer/生态),但本项目单 Agent 循环的全部状态 = 1 个 messages 列表 + 3 个计数器,框架的 checkpointer 持久化与条件边是为多 Agent/跨会话恢复设计的,当前是过度工程;我留好了事件协议边界,需要时替换成本可控。"** —— 这比"我没用过"强一个量级。
+被问"为什么不用 LangGraph"时的回应口径:**"知道框架能做什么(StateGraph/checkpointer/生态),但本项目单 Agent 循环的全部状态 = 1 个 messages 列表 + 3 个计数器,框架的 checkpointer 持久化与条件边是为多 Agent/跨会话恢复设计的,当前是过度工程;我留好了事件协议边界,需要时替换成本可控。"** —— 这比"我没用过"强一个量级。
 
 ## 代价与缓解
 
@@ -54,7 +54,7 @@ v2.0 的循环只有 4 个"小决策":max_steps 预算(硬顶 16)、相同 (name
 |---|---|
 | 循环健壮性(超时/死循环/解析异常)靠手写 | 单测 12 测 + repeat_guard + max_steps 硬顶 + `execute_tool` 永不抛 + T14 golden-agent 评测回归 |
 | 没有框架生态(工具封装/记忆/评估插件) | 项目已有检索/降级/计量资产,工具只有 4 个只读函数,生态用不上 |
-| 面试可能被追问框架细节 | T23 LangGraph 概念速学(不改代码)+ 本 ADR 第 5 点口径 |
+| 技术评审可能被追问框架细节 | T23 LangGraph 概念速学(不改代码)+ 本 ADR 第 5 点口径 |
 
 ## Open Questions(不阻塞)
 
